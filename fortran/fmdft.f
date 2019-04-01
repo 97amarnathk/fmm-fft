@@ -498,6 +498,7 @@ C
       implicit none
       integer   lq, np, s, p, sz1, szwk
       integer   ind, ia(30), j, n, log2, nieach
+      ! w(1) indicates that w is a variable size array (Fortran 77) :/
       double precision w(1), wt(1)
 
       s = lq / nieach
