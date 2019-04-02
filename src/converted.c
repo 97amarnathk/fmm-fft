@@ -6,6 +6,22 @@
 
 #define M_PI 3.14159265358979323846264338327950288
 
+/* 
+Returns 1D index given the 2D indices and array dimensions
+
+Parameters:
+`int i` : row index
+`int j` : column index
+`int dim1` : primary dimension of 2D array
+`int dim2` : secondary dimension of 2D array
+
+Returns:
+1D index : (i*dim2 + j)
+*/
+int get1Dfrom2D(int i, int j, int dim1, int dim2) {
+    return (i*dim2 + j);
+}
+
 int my_log(int x) {
     int ans = 0;
     while(x>1) {
@@ -15,8 +31,22 @@ int my_log(int x) {
     return ans;
 }
 
-void initg(int b, int s, double* initch, int terms, double* wknie, double* chnods) {
-    
+void initg(int b, int s, double* initch, int terms, double* tang, double* chnods) {
+    double a = M_PI / (2.0 * s);
+    for(int j=1; j<=b; j++) {
+        th = ((double)(2*j - b - 1))/(double)b * a;
+        tang[j-1] = tan(th);
+    }
+
+    double ta3 = 3 * tan(a);
+
+    for(int j=1; j<=b; j++) {
+        for(k=1; k<=p; k++) {
+            initch[get1Dfrom2D(k-1, j-1, terms, b)] = (chnods[k-1] + ta3 * tang[j-1]) / (ta3 - chnods[k-1] * tang[j-1]);
+        }
+    }
+
+    return;
 }
 
 void mftii(int lq, int p, int s, int terms, int b, int n, int szkeep, int sztemp,
@@ -31,8 +61,8 @@ void mftii(int lq, int p, int s, int terms, int b, int n, int szkeep, int sztemp
         b = lq/s;
         n = my_log2(s);
 
-        for(int j=0; j<p; j++) {
-            chnods[j] = cos((2*j-1)/(2*M_PI*terms));
+        for(int j=1; j<=p; j++) {
+            chnods[j-1] = cos((2*j-1)/(2*M_PI*terms));
         }
 
         initg(b, s, initch, terms, wknie, chnods);
