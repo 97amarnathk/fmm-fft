@@ -224,13 +224,13 @@ void mftii(int lq, int p, int s, int terms, int b, int n, int szkeep, int sztemp
 
             for(int j=1; j<=b; j++) {
                 double ffr = ((double)(2*j -1) - (((double)(2*sc))/p))/b - 1;
-                evlmf(ffr, s, lq, evalm[get1Dfrom3D(j-1, sc-1, 0, b, p-1, terms)], terms, wkp, chnods, wkp2);
+                evlmf(ffr, s, lq, &evalm[get1Dfrom3D(j-1, sc-1, 0, b, p-1, terms)], terms, wkp, chnods, wkp2);
             }
 
             if(sc >= p/2) {
                 int sce = sc - p/2 + 1;
                 double ffr = (((double)2*b + 1) - ((double)2*sc)/(p))/(b) - 1;
-                evlmf(ffr, s, lq, evalmh[get1Dfrom2D(sce-1, 0, p/2, terms)], terms, wkp, chnods, wkp2);
+                evlmf(ffr, s, lq, &evalmh[get1Dfrom2D(sce-1, 0, p/2, terms)], terms, wkp, chnods, wkp2);
 
                 for(int j= 1-b; j<=2*b; j++) {
                     cotsh[get1Dfrom2D(sce-1, j+b-1, p/2, 3*b)] = -1 / tan(M_PI/dlq * (j - 1 - b + gfrac)) / dlq;
@@ -315,16 +315,104 @@ void mfti(int lq, int p, int t, int b, double *wkkeep, double *wktemp, int szkee
     );
 }
 
-int main(int argc, char *argv[]) {
-    //Initialise MPI env
-    MPI_Init(&argc, &argv);
-    int world_size, my_rank;
-    MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
-    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+void mft(int lq, double complex* qr, int dir, int p, int myid, int terms, int b, double* w, double* v, int sz1, int szwk) {
+    MPI_Barrier(MPI_COMM_WORLD);
+    int s = lq/b;
+    int t = s/p;
+    int n = my_log2(s);
+    int log2np = my_log2(p);
 
-    // Initialise data using mfti
-    mfti();
+    int ia[57];
+    int ind = 0;
 
-    //cleanup
-    MPI_Finalize();
+    for(int j=0; j<=7; j++) {
+        ia[j] = ind;
+        ind += terms*terms*(n-2);
+    }
+    ia[8] = ind;
+    ind += p*p;
+    ia[9] = ind;
+    ind += terms*b;
+    ia[10] = ind;
+    ind += terms*(p - 1)*b;
+    ia[11] = ind;
+    ind += (terms*p)/2;
+    ia[12] = ind;
+    ind += (3*b*p)/2;
+    ia[13] = ind;
+    ind += 3*b*(b-1)*(p-1);
+    ia[14] = ind;
+    ind += (3*b*p)/2;
+    ia[15] = ind;
+    ind += terms;
+    ia[16] = ind;
+    ind += 2*(p-1)*terms;
+
+    ind = 0;
+    for(int j=17; j<=18; j++) {
+        ia[j] = ind;
+        ind+= 2*terms*(p-1)*(2*t + log2np - 3);
+    }
+    for(int j=21; j<=22; j++) {
+        ia[j] = ind;
+        ind += 2*p;
+    }
+    for(int j=23; j<=25; j++) {
+        ia[j] = ind;
+        ind += 2*terms*(p-1);
+    }
+    for(int j=26; j<=27; j++) {
+        ia[j] = ind;
+        ind += 2*(p-1)*(b + n*2*terms);
+    }
+    for(int j=28; j<=29; j++) {
+        ia[j] = ind;
+        ind += 2*((p-1)*(b + n*2*terms) + p/2);
+    }
+    ia[30] = ind;
+    ind += 2*b*p;
+    ia[31] = ind;
+    ind += 2*b*(p-1);
+    for(int j=32; j<=33; j++) {
+        ia[j] = ind;
+        ind+= 2 * (p/2);
+    }
+    for(int j=34; j<=43; j++) {
+        ia[j] = ind;
+        ind += 2*terms*(p-1);
+    }
+    for(int j=44; j<=45; j++) {
+        ia[j] = ind;
+        ind += 2 * terms * (p-1) * 2 * n;
+    }
+    ia[46] = ind;
+    ind += 2*lq;
+    ia[47] = ind;
+    ind += 2*(p-1);
+    for(int j=48; j<=49; j++) {
+        ia[j] = ind;
+        ind += 2 * (p/2);
+    }
+    ia[50] = ind;
+    ind = ind + b;
+    for(int j=51; j<=53; j++) {
+        ia[j] = ind;
+        ind += terms;
+    }
+    for(int j=54; j<=55; j++) {
+        ia[j] = ind;
+        ind += 3 * p;
+    }
+
+    mftint(qr, lq, p, myid, s, terms, n, t, b, log2np, sz1, szwk, dir,
+        &w[ia[0]], &w[ia[1]], &w[ia[2]], &w[ia[3]], &w[ia[4]], &w[ia[5]],
+        &w[ia[6]], &w[ia[7]], &w[ia[8]], &w[ia[9]], &w[ia[10]], &w[ia[11]], 
+        &w[ia[12]], &w[ia[13]], &w[ia[14]], &w[ia[15]], &w[ia[16]],
+        &v[ia[17]], &v[ia[18]], &v[ia[21]], &v[ia[22]], &v[ia[23]], &v[ia[24]],
+        &v[ia[25]], &v[ia[26]], &v[ia[27]], &v[ia[28]], &v[ia[29]], &v[ia[30]],
+        &v[ia[31]], &v[ia[32]], &v[ia[33]], &v[ia[34]], &v[ia[35]], &v[ia[36]],
+        &v[ia[37]], &v[ia[38]], &v[ia[39]], &v[ia[40]], &v[ia[41]], &v[ia[42]],
+        &v[ia[43]], &v[ia[44]], &v[ia[45]], &v[ia[46]], &v[ia[47]], &v[ia[48]],
+        &v[ia[49]], &v[ia[50]], &v[ia[51]], &v[ia[52]], &v[ia[53]], &v[ia[54]], &v[ia[55]]
+    );
 }
