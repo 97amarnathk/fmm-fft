@@ -84,13 +84,84 @@ void vx(double a, double* x, double* mat, int terms, double* chnods, double* mm,
     return;
 }
 
+void wx(double a, double* x, int xlen, double* mat, int terms, double* chnods, double* acu) {
+    double ac = 1/tan(a);
+
+    for(int j=1; j<=terms; j++) {
+        double th = -cos( ((double)(2*j - 2)) / 2*(terms-1) * M_PI ) * (M_PI - 6*a) + M_PI;
+        acu[j-1] = ac * tan(0.5 * th);
+        chnods[j-1] = -cos(((double)2*j -1) / (2*terms) * M_PI);
+    }
+
+    for(int j=1; j<=terms; j++) {
+        double mm = chnods[j-1] - acu[j-1];
+
+        for(int k=1; k<=j-1; k++) {
+            mm *= ( (chnods[j-1] - acu[k-1]) / (chnods[j-1] - chnods[k-1]) );
+        }
+
+        for(int k=j+1; k<=terms; k++) {
+            mm *= ( (chnods[j-1] - acu[k-1]) / (chnods[j-1] - chnods[k-1]) );
+        }
+        
+        for(int k=1; k<=xlen; k++) {
+            mat[get1Dfrom2D(k-1, j-1, xlen, terms)] = mm / (x[k-1] - acu[j-1]);
+            for(int l=1; l<=j-1; l++) {
+                mat[get1Dfrom2D(k-1, j-1, xlen, terms)] *= ( (x[k-1] - chnods[l-1]) / (x[k-1] - acu[l-1]) );
+            }
+            for(int l=j+1; l<=terms; l++) {
+                mat[get1Dfrom2D(k-1, j-1, xlen, terms)] *= ( (x[k-1] - chnods[l-1]) / (x[k-1] - acu[l-1]) );
+            }
+        }
+    }
+}
+
+void shftf(int lev, int dir, double* mat, int terms, double* chnods, double* x, double* wkp, double* mm) {
+    double dd = (double) dir;
+    double a = M_PI/pow(2, lev);
+    double ta3 = 2 * tan(a);
+    double td2 = tan(0.5 * a);
+
+    for(int j=1; j<=terms; j++) {
+        x[j-1] = 3 * td2 * (chnods[j-1] + dd*ta3*td2) / (ta3 - dd*td2*chnods[j-1]);
+    }
+
+    vx(0.5*a, x, mat, terms, chnods, wkp, mm);
+}
+
+void evlmf(double ffr, int s, int lq, double* vec, int terms, double* w, double* chnods, double* acu) {
+    double a = (M_PI / s) * 0.5;
+    double th = ffr * a;
+    double x = tan(th)/tan(a);
+    wx(a, &x, 1, w, terms, chnods, acu);
+
+    for(int t = 1; t<=terms; t++) {
+        vec[t-1] = w[t-1]/lq;
+    }
+
+    return;
+}
+
+void shftl(int lev, int dir, double* mat, int terms, double* chnods, double* x, double* acu) {
+    double dd = (double)dir;
+    double a = M_PI/pow(2, lev);
+    double c = tan(0.25 * a);
+    double td2 = tan(0.5 * a);
+
+    for(int j=1; j<=terms; j++) {
+        x[j-1] = (chnods[j] - dd) / (1/c + dd*c*chnods[j-1]) / td2;
+    }
+
+    wx(0.5 * a, x, terms, mat, terms, chnods, acu);
+}
+
 void flip(int lev, int shft, double* mat, int terms, double* chnods, double* x, double* wkp, double* mm) {
     double a = M_PI/(pow(2, lev));
     double b = shft;
     double c = tan(0.5 * a);
     double td2 = tan(b * a);
 
-    for(int j=1; j<=p; j++) {
+    for(int j=1; j<=terms; j++) {
         x[j-1] = 3 * c * (1 - td2*c*chnods[j-1]) / (td2 + c*chnods[j-1]);
     }
 
@@ -103,14 +174,14 @@ void initg(int b, int s, double* initch, int terms, double* tang, double* chnods
     double a = M_PI / (2.0 * s);
 
     for(int j=1; j<=b; j++) {
-        th = ((double)(2*j - b - 1))/(double)b * a;
+        double th = ((double)(2*j - b - 1))/(double)b * a;
         tang[j-1] = tan(th);
     }
 
     double ta3 = 3 * tan(a);
 
     for(int j=1; j<=b; j++) {
-        for(k=1; k<=p; k++) {
+        for(int k=1; k<=terms; k++) {
             initch[get1Dfrom2D(j-1, k-1, b, terms)] = (chnods[k-1] + ta3 * tang[j-1]) / (ta3 - chnods[k-1] * tang[j-1]);
         }
     }
@@ -130,7 +201,7 @@ void mftii(int lq, int p, int s, int terms, int b, int n, int szkeep, int sztemp
         b = lq/s;
         n = my_log2(s);
 
-        for(int j=1; j<=p; j++) {
+        for(int j=1; j<=terms; j++) {
             chnods[j-1] = cos((2*j-1)/(2*M_PI*terms));
         }
 
@@ -184,7 +255,8 @@ void mftii(int lq, int p, int s, int terms, int b, int n, int szkeep, int sztemp
         for(int sc = 1; sc<=p-1; sc++) {
             double ang = M_PI * (double)sc / p;
             for(int j=1; j<=p; j++) {
-                //------> code to be added here :)
+                double complex temp = (ang * (1 - 2*j))*I;
+                fo[get1Dfrom2D(sc-1, j+b-1, p, p-1)] = -cexp(temp)*sin(ang);
             }
         }
 }
