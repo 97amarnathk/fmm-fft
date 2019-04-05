@@ -40,12 +40,31 @@ int get1Dfrom3D(int i, int j, int k, int dim1, int dim2, int dim3) {
     return((i * dim2 * dim3) + (j*dim3) + k);
 }
 
+int get1Dfrom4D(int i, int j, int k, int l, int dim1, int dim2, int dim3, int dim4) {
+    return((i * dim2 * dim3 * dim4) + (j*dim3*dim4) + k*dim4 + l);
+}
+
 int my_log(int x) {
     int ans = 0;
     while(x>1) {
         x/=2;
         ans++;
     }
+    return ans;
+}
+
+void cjall(int n, double complex* x) {
+    for(int i=0; i<n; i++) {
+        x[i] = conj(x[i]);
+    }
+}
+
+double complex dotp(int n, double complex* x, double* r) {
+    double complex ans = 0;
+    for(int i=0; i<n; i++) {
+        ans += x[i]*r[i];
+    }
+
     return ans;
 }
 
@@ -142,6 +161,18 @@ void evlmf(double ffr, int s, int lq, double* vec, int terms, double* w, double*
     return;
 }
 
+void mpp(double complex* vecs, int terms, int len, double* matpp, double complex* ans) {
+    for(int sc=1; sc<=len; sc++) {
+        for(int term=1; term<=terms; term++) {
+            ans[get1Dfrom2D(sc-1, term-1,len, terms)] = vecs[get1Dfrom2D(sc-1, 0,len ,terms)] * matpp[get1Dfrom2D(term-1, 0, terms, terms)];
+
+            for(int k=2; k<=terms; k++) {
+                ans[get1Dfrom2D(sc-1, term-1,len, terms)] += vecs[get1Dfrom2D(sc-1, k-1,len ,terms)] * matpp[get1Dfrom2D(term-1, k-1, terms, terms)];
+            }
+        }
+    }
+}
+
 void shftl(int lev, int dir, double* mat, int terms, double* chnods, double* x, double* acu) {
     double dd = (double)dir;
     double a = M_PI/pow(2, lev);
@@ -153,6 +184,20 @@ void shftl(int lev, int dir, double* mat, int terms, double* chnods, double* x, 
     }
 
     wx(0.5 * a, x, terms, mat, terms, chnods, acu);
+}
+
+void initmm(double complex* qr, int p, int b, int t, double* initch, double complex* phi, int terms) {
+    for(int box=1; box<=t; box++) {
+        for(int sc=1; sc<=p-1; sc++) {
+            for(int term=1; term<=terms; term++) {
+                phi[get1Dfrom3D(box-1, sc-1, term-1, t, p-1, terms)] = qr[get1Dfrom3D(box-1, sc, 0, t, p, b)] * initch[get1Dfrom2D(0, term-1, b, terms)];
+
+                for(int j=2; j<=b; j++) {
+                    phi[get1Dfrom3D(box-1, sc-1, term-1, t, p-1, terms)] += qr[get1Dfrom3D(box-1, sc, j-1, t, p, b)] * initch[get1Dfrom2D(j-1, term-1, b, terms)];
+                }
+            }
+        }
+    }
 }
 
 void flip(int lev, int shft, double* mat, int terms, double* chnods, double* x, double* wkp, double* mm) {
@@ -313,6 +358,241 @@ void mfti(int lq, int p, int t, int b, double *wkkeep, double *wktemp, int szkee
         &wkkeep[ia[15]], &wkkeep[ia[16]], &wkkeep[ia[17]], &wkkeep[ia[18]], &wkkeep[ia[19]],
         &wkkeep[ia[20]], wktemp
     );
+}
+
+void mftint(double complex* qr, int lq, int p, int myid, int s, int terms, int n, int t, int b, int log2np, int sz1, int szwk, int dir,
+    double* shftfn, double* shftfp, double* flip2n, double* flip2p, double* flip3n, double* flip3p,
+    double* shftln, double* shftlp, double* topflp, double* initch, double* evalm, double* evalmh,
+    double* cotsh, double* cots, double* cotprv, double* cnods, double complex* fo,
+    double complex* phi, double complex* psi, double complex* sump, double complex* sumsec, double complex* phils, double complex* phirs, double complex* phr,
+    double complex* packps, double complex* packnr, double complex* packns, double complex* packpr, double complex* qrn, double complex* qrp, double complex* qcpp, double complex* packnn,
+    double complex* phiopp, double complex* phim2, double complex* phim3, double complex* phip3, double complex* shpsi, double complex* psiprv,
+    double complex* f2n, double complex* f2p, double complex* f3, double complex* phin, double complex* phip, double complex* psiev, double complex* psit, double complex* exts, double complex* extr,
+    double* wknie, double* wkp, double* wkp2, double* wkp3,
+    int* prevd, int* nextd
+) {
+
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    if(dir<0) {
+        cjall(lq, qr);
+    }
+
+    double dlq = (double)lq;
+    log2np = my_log2(p);
+    int npm1 = p-1;
+    int pnpm1 = terms*npm1;
+
+    int nextid = (myid + 1)%p;
+    int previd = (myid - 1)%p;
+
+    for(int lev = 1; lev<=log2np; lev++) {
+        int inc = p/pow(2, lev);
+        for(int j=1; j<=3; j++) {
+            nextd[get1Dfrom2D(lev-1, j-1, p, 3)] = (myid + j*inc)%p;
+            prevd[get1Dfrom2D(lev-1, j-1, p, 3)] = (myid + 3*p - j*inc)%p;
+        }
+    }
+
+    for(int box = 1; box<=t; box++) {
+        int ind = 1;
+        int lr = 1;
+
+        for(int sc=1; sc<=p; sc++) {
+            for(int j=1; j<=b; j++) {
+                qrn[get1Dfrom2D(lr-1, ind-1, p, b)] = qr[get1Dfrom3D(box-1, sc-1, j-1, t, p, b)];
+                lr += 1;
+                if(lr>p) {
+                    lr = 1;
+                    ind = ind+1;
+                }
+            }
+        }
+
+        for(int sc = 1; sc<=p; sc++) {
+            for(int j=1; j<=b; j++) {
+                qr[get1Dfrom3D(box-1, sc-1, j-1, t, p, b)] = qrn[get1Dfrom2D(sc-1, j-1, p, b)];
+            }
+        }
+    }
+
+    // Get sum of each section.  Collect results in sumsec(1:npm1).
+    for(int sc=1; sc<=npm1; sc++) {
+        sump[sc-1] = 0;
+
+        for(int box=1; box<=t; box++) {
+            for(int j=1; j<=b; j++) {
+                sump[sc-1] = sump[sc-1] + qr[get1Dfrom3D(box-1, sc + 1 - 1, j-1, t, p, b)];
+            }
+        }
+    }
+
+    MPI_Reduce(sump, sumsec, npm1, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, MPI_COMM_WORLD);
+    MPI_Bcast(sumsec, npm1, MPI_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD);
+
+    for(int sc=1; sc<=npm1; sc++) {
+        sumsec[sc-1] *= (I/dlq);
+    }
+
+    /* Step 1 : Lowest level */
+
+    int base = t + log2np - 3;
+    initmm(qr, p, b, t, initch, phi, terms);
+
+    /* Step 2 : Up the tree */
+
+    int lup = log2np;
+    if(p==2)
+        lup = 2;
+
+    int nl = t;
+    //At lower levels, no communication required
+    for(int lev=n-1; lev>=lup; lev--) {
+        int obase = base;
+        nl = nl/2;
+        base = base -nl;
+
+        for(int box=1; box<=nl; box++) {
+            mpp(&phi[get1Dfrom3D(obase + 2*box - 1 - 1, 0, 0, 2*t + log2np - 3, p-1, terms)], terms, npm1, &shftfn[get1Dfrom3D(lev-1-1, 0, 0, n-2, terms, terms)], phils);
+            mpp(&phi[get1Dfrom3D(obase + 2*box - 1, 0, 0, 2*t + log2np - 3, p-1, terms)], terms, npm1, &shftfp[get1Dfrom3D(lev-1-1, 0, 0, n-2, terms, terms)], phirs);
+            
+            for(int sc = 1; sc<=npm1;  sc++) {
+                for(int term = 1; term<=p; term++) {
+                    phi[get1Dfrom3D(base + box - 1, sc-1, term-1, 2*t + log2np - 3, p-1, terms)] = phils[get1Dfrom2D(sc-1, term-1, p-1, terms)] + phirs[get1Dfrom2D(sc-1, term-1, p-1, terms)];
+                }
+            }
+        }
+    }
+
+    //At higher levels, communication is required
+    for(int lev = log2np - 1; lev>=2; lev--) {
+        int obase = base;
+        base = base-1;
+        int intrvl = p/pow(2, lev);
+        int intvlo = intrvl/2;
+
+        if(myid%intrvl == 0) {
+            MPI_Recv(phr, pnpm1, MPI_DOUBLE_COMPLEX, nextd[get1Dfrom2D(lev+1-1, 0, p, 3)], lev, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            mpp(&phi[get1Dfrom3D(obase + 1 - 1 , 0, 0, 2*t + log2np - 3, p-1, terms)], terms, npm1, &shftfp[get1Dfrom3D(lev-1-1, 0, 0, n-2, terms, terms)], phils);
+            mpp(phr, terms, npm1, &shftfp[get1Dfrom3D(lev-1-1, 0, 0, n-2, terms, terms)], phirs);
+
+            for(int sc=1; sc<=npm1; sc++) {
+                for(int term=1; term<=terms; terms++) {
+                   phi[get1Dfrom3D(base + 1 - 1, sc-1, term-1, 2*t + log2np - 3, p-1, terms)] = phils[get1Dfrom2D(sc-1, term-1, p-1, terms)] + phirs[get1Dfrom2D(sc-1, term-1, p-1, terms)]; 
+                }
+            }
+        }
+
+        else if(myid % intrvl == intvlo) {
+            MPI_Send(phi[get1Dfrom3D(obase + 1 - 1 , 0, 0, 2*t + log2np - 3, p-1, terms)], pnpm1, MPI_DOUBLE_COMPLEX, prevd[get1Dfrom2D(lev+1-1, 0, p, 3)], lev, MPI_COMM_WORLD);
+        }
+    }
+
+    int tag = log2np;
+
+    /* Pack:  phi, qr -> packns, packps */
+    int pk = 0;
+
+    for(int lev = lup+1; lev<=n; lev++) {
+        int nl = pow(2, lev)/p;
+        base = nl + log2np - 3;
+
+        for(int sc=1; sc<=npm1; sc++) {
+            for(int term=1; term<=terms; term++) {
+                pk++;
+                packns[pk-1] = phi[get1Dfrom3D(base + nl - 1 - 1, sc-1, term-1, 2*t + log2np - 3, p-1, terms)];
+                packps[pk-1] = phi[get1Dfrom3D(base + 1 - 1 , sc-1, term-1, 2*t + log2np - 3, p-1, terms)];
+
+                pk++;
+                packns[pk-1] = phi[get1Dfrom3D(base + nl - 1 , sc-1, term-1, 2*t + log2np - 3, p-1, terms)];
+                packps[pk-1] = phi[get1Dfrom3D(base + 2 - 1 , sc-1, term-1, 2*t + log2np - 3, p-1, terms)];
+            }
+        }
+    }
+
+    /* Now pk .eq. (n - lup) * npm1 * 2 * p */
+
+    for(int sc=1; sc<=npm1; sc++) {
+        for(int j=1; j<=b; j++) {
+            pk++;
+            packns[pk-1] = qr[get1Dfrom3D(t-1, sc+1-1, j-1, t, p, b)];
+            packps[pk-1] = qr[get1Dfrom3D(0, sc+1-1, j-1, t, p, b)];
+        }
+    }
+
+    /* Now pk .eq. (n - lup)*npm1*2*p + npm1*nieach */
+    int lpkp = pk;
+
+    if(t==1) {
+        for(int sc = p/2; sc<=npm1; sc++) {
+            int sce = sc - p/2 + 1;
+            packnn[sce-1] = dotp(b, &qr[get1Dfrom3D(0, sc+1-1, 0, t, p, b)], &cotsh[get1Dfrom2D(sce-1, 0, p/2, 3*b)]);
+        }
+    }
+    else {
+        for(int sc=p/2; sc<=npm1; sc++) {
+            int sce = sc - p/2 + 1;
+            pk++;
+            packns[pk-1] = dotp(b, &qr[get1Dfrom3D(t-1-1, sc+1-1, 0, t, p, b)], &cotsh[get1Dfrom2D(sce-1, 0, p/2, 3*b)]);
+        }
+    }
+
+    int lpkn = pk;
+
+    /* Data transfer */
+    tag++;
+    MPI_Sendrecv(packps, lpkp, MPI_DOUBLE_COMPLEX, previd, tag, packnr, lpkp, MPI_DOUBLE_COMPLEX, nextid, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    tag++;
+    MPI_Sendrecv(packns, lpkn, MPI_DOUBLE_COMPLEX, nextid, tag, packpr, lpkn, MPI_DOUBLE_COMPLEX, previd, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+    if(t==1) {
+        tag++;
+        MPI_Sendrecv(packnn, p/2, MPI_DOUBLE_COMPLEX, nextd[get1Dfrom2D(log2np, 1, p, 3)], tag, qcpp, p/2, MPI_DOUBLE_COMPLEX, prevd[get1Dfrom2D(log2np, 1, p, 3)], tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    }
+
+    /* Unpack:  packnr -> phin, qrn
+          packpr -> phip, qrp, qcpp */
+
+    int pk = 0;
+    int lr = 0;
+
+    for(int lev = lup+1; lev<=n; lev++) {
+        lr++;
+        nl = pow(2, lev)/p;
+        base = nl + log2np - 3;
+
+        for(int sc=1; sc<=npm1; sc++) {
+            for(int term=1; term<=p; term++) {
+                pk++;
+                phin[get1Dfrom4D( lr-1, 0, sc-1, term-1, n, 2, p-1, terms)] = packnr[pk-1];
+                phip[get1Dfrom4D( lr-1, 0, sc-1, term-1, n, 2, p-1, terms)] = packpr[pk-1];
+                
+                pk++;
+                phin[get1Dfrom4D( lr-1, 1, sc-1, term-1, n, 2, p-1, terms)] = packnr[pk-1];
+                phip[get1Dfrom4D( lr-1, 1, sc-1, term-1, n, 2, p-1, terms)] = packpr[pk-1];
+            }
+        }
+    }
+
+    /* Now pk .eq. (n - lup) * npm1 * 2 * p */
+
+    for(int sc=1; sc<=npm1; sc++) {
+        for(int j=1; j<=b; j++) {
+            pk++;
+            qrn[get1Dfrom2D(sc-1, j-1, p, b)] = packnr[pk-1];
+            qrp[get1Dfrom2D(sc-1, j-1, p, b)] = packpr[pk-1];
+        }
+    }
+
+    /* Now pk .eq. (n - lup)*npm1*2*p + nieach*npm1 */
+    if(t>=1) {
+        for(int sc=1; sc<=p/2; sc++) {
+            pk++;
+            qcpp[sc-1] = packpr[pk-1];
+        }
+    }
+
+
 }
 
 void mft(int lq, double complex* qr, int dir, int p, int myid, int terms, int b, double* w, double* v, int sz1, int szwk) {
