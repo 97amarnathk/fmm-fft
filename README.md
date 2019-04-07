@@ -6,16 +6,16 @@ Parallel FMM Accellerated FFT on CPUs
 
 ### Verified
 
-[x] mfti
-[ ] mftii
-[ ] initg
-[ ] flip
-[ ] shftf
-[ ] shftl
-[ ] vx
-[ ] wx
-[ ] evlmf
-[ ] mft
+- [ ] mfti
+- [ ] mftii
+- [ ] initg
+- [ ] flip
+- [ ] shftf
+- [ ] shftl
+- [x] vx
+- [x] wx
+- [ ] evlmf
+- [ ] mft
 
 ### Written
 
