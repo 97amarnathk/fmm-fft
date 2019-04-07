@@ -73,9 +73,9 @@ void vx(double a, double* x, double* mat, int terms, double* chnods, double* mm,
 
     for(int j=1; j<=terms; j++) {
         /*
-            In calculation of "th", "j" and "terms" are ints and to convert them to double M_PI should be double but #define replaces as a string so it needs to be casted into double.
+            In calculation of "th", "j" and "terms" are ints and to convert them to double, they need to be casted into double.
         */
-        double th = -1 * cos((2*j-2)/(2 * (terms-1) * (double)M_PI)) * (2*a);
+        double th = -1 * cos( ((double)(2*j-2))/(2 * (terms-1) * M_PI)) * (2*a);
         acu[j-1] = ac / tan(0.5 * th);
     }
 
@@ -112,9 +112,9 @@ void wx(double a, double* x, int xlen, double* mat, int terms, double* chnods, d
             In calculation of "th", "j" and "terms" are ints and to convert them to double M_PI should be double but #define replaces as a string so it needs to be casted into double.
     */
     for(int j=1; j<=terms; j++) {
-        double th = -cos( ((double)(2*j - 2)) / 2*(terms-1) * (double)M_PI ) * ((double)M_PI - 6*a) + (double)M_PI;
+        double th = -cos( ((double)(2*j - 2)) / 2*(terms-1) * M_PI ) * (M_PI - 6*a) + M_PI;
         acu[j-1] = ac * tan(0.5 * th);
-        chnods[j-1] = -cos(((double)2*j -1) / (2*terms) * (double)M_PI);
+        chnods[j-1] = -cos(((double)2*j -1) / (2*terms) * M_PI);
     }
 
     for(int j=1; j<=terms; j++) {
@@ -141,9 +141,11 @@ void wx(double a, double* x, int xlen, double* mat, int terms, double* chnods, d
 }
 
 void shftf(int lev, int dir, double* mat, int terms, double* chnods, double* x, double* wkp, double* mm) {
+    
     double dd = (double) dir;
     double a = M_PI/pow(2, lev);
-    double ta3 = 2 * tan(a);
+    /* ta3 is 3*tan(a) and hence changing 2*tan(a) to 3*tan(a) */
+    double ta3 = 3 * tan(a);
     double td2 = tan(0.5 * a);
 
     for(int j=1; j<=terms; j++) {

@@ -10,7 +10,7 @@ Parallel FMM Accellerated FFT on CPUs
 - [ ] mftii
 - [ ] initg
 - [ ] flip
-- [ ] shftf
+- [x] shftf
 - [ ] shftl
 - [x] vx
 - [x] wx
