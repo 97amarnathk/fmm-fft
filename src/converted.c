@@ -72,7 +72,10 @@ void vx(double a, double* x, double* mat, int terms, double* chnods, double* mm,
     double ac = 3 * tan(a);
 
     for(int j=1; j<=terms; j++) {
-        double th = -1 * cos((2*j-2)/(2 * (terms-1) * M_PI)) * (2*a);
+        /*
+            In calculation of "th", "j" and "terms" are ints and to convert them to double M_PI should be double but #define replaces as a string so it needs to be casted into double.
+        */
+        double th = -1 * cos((2*j-2)/(2 * (terms-1) * (double)M_PI)) * (2*a);
         acu[j-1] = ac / tan(0.5 * th);
     }
 
