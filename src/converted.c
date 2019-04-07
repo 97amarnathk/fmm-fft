@@ -386,6 +386,7 @@ void mftint(double complex* qr, int lq, int p, int myid, int s, int terms, int n
     int nextid = (myid + 1)%p;
     int previd = (myid - 1)%p;
 
+    double complex psit1, psit2, psid1, psid2, psid3;
     for(int lev = 1; lev<=log2np; lev++) {
         int inc = p/pow(2, lev);
         for(int j=1; j<=3; j++) {
@@ -796,7 +797,124 @@ void mftint(double complex* qr, int lq, int p, int myid, int s, int terms, int n
             psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += mn3(b, qr[get1Dfrom3D(box-2, sc+1-1, 0, t, p, b)], qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], qrn[get1Dfrom2D(sc-1,0,p, b)], cotprv[get1Dfrom2D(sc-1, 0, p/2, 3*b)]);
         }
 
-        
+        for(int j=2; j<=b; j++) {
+            if(t==1) {
+                box=1;
+                psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += mn3(b, qrp[get1Dfrom2D(sc-1, 0, p-1, b)], qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], qrn[get1Dfrom2D(sc-1,0,p, b)], cots[get1Dfrom3D(sc-1,j-2,0,p-1, b-1, 3*b)]);
+            }
+            else {
+                box=1;
+                psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += mn3(b, qrp[get1Dfrom2D(sc-1, 0, p-1, b)], qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], qr[get1Dfrom3D(box+1-1, sc+1-1, 0, t, p, b)], cots[get1Dfrom3D(sc-1,j-2,0,p-1, b-1, 3*b)]);
+                box = t;
+                psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += mn3(b, qr[get1Dfrom3D(box-2, sc+1-1, 0, t, p, b)], qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], qrn[get1Dfrom2D(sc-1,0,p, b)], cots[get1Dfrom3D(sc-1,j-2,0,p-1, b-1, 3*b)]);
+            }
+        }
+    }
+
+    sc = p/2;
+    sce = 1;
+    j = 1;
+    if(t==1) {
+        box=1;
+        psid1 = mn3(b, qrp[get1Dfrom2D(sc-1, 0, p-1, b)], qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], qrn[get1Dfrom2D(sc-1,0,p, b)], cotprv[get1Dfrom2D(sc-1, 0, p/2, 3*b)]);
+        psid2 = dotp(b, &qrp[get1Dfrom2D(sc-1, 0, p-1, b)], &cotsh[get1Dfrom2D(sce-1, 1+b-1, p/2, 3*b)]);
+        psid3 = dotp(b, &qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], &cotsh[get1Dfrom2D(sce-1, 1+2*b-1, p/2, 3*b)]);
+        psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += (psid1 + qcpp[sce-1] + psid2 + psid3) * 0.5;
+    }
+    else if(t==2) {
+        box=1;
+        psid1 = mn3(b, qrp[get1Dfrom2D(sc-1, 0, p-1, b)], qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], qr[get1Dfrom3D(box+1-1, sc+1-1, 0, t, p, b)], cotprv[get1Dfrom2D(sc-1, 0, p/2, 3*b)]);
+        psid2 = dotp(b, &qrp[get1Dfrom2D(sc-1, 0, p-1, b)], &cotsh[get1Dfrom2D(sce-1, 1+b-1, p/2, 3*b)]);
+        psid3 = dotp(b,&qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], &cotsh[get1Dfrom2D(sce-1, 1+2*b-1, p/2, 3*b)]);
+        psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += (psid1 + qcpp[sce-1] + psid2 + psid3) * 0.5;
+
+        box=2;
+        psid1 = mn3(b, qr[get1Dfrom3D(box-2, sc+1-1, 0, t, p, b)], qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], qrn[get1Dfrom2D(sc-1,0,p, b)], cotprv[get1Dfrom2D(sc-1, 0, p/2, 3*b)]);
+        psid2 = mn3(b, qrp[get1Dfrom2D(sc-1, 0, p-1, b)], qr[get1Dfrom3D(box-2, sc+1-1, 0, t, p, b)], qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], &cotsh[get1Dfrom2D(sce-1, 0, p/2, 3*b)]);
+        psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += (psid1 + psid2) * 0.5;
+    }
+    else {
+        box = 1;
+        psid1 = mn3(b, qrp[get1Dfrom2D(sc-1, 0, p-1, b)], qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], qr[get1Dfrom3D(box+1-1, sc+1-1, 0, t, p, b)], cotprv[get1Dfrom2D(sc-1, 0, p/2, 3*b)]);
+        psid2 = dotp(b, &qrp[get1Dfrom2D(sc-1, 0, p-1, b)], &cotsh[get1Dfrom2D(sce-1, 1+b-1, p/2, 3*b)]);
+        psid3 = dotp(b,&qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], &cotsh[get1Dfrom2D(sce-1, 1+2*b-1, p/2, 3*b)]);
+        psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += (psid1 + qcpp[sce-1] + psid2, psid3) * 0.5;
+
+        box = 2;
+        psid1 = mn3(b, qr[get1Dfrom3D(box-2, sc+1-1, 0, t, p, b)], qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], qr[get1Dfrom3D(box+1-1, sc+1-1, 0, t, p, b)], cotprv[get1Dfrom2D(sc-1, 0, p/2, 3*b)]);
+        psid2 = mn3(b, qrp[get1Dfrom2D(sc-1, 0, p-1, b)], qr[get1Dfrom3D(box-2, sc+1-1, 0, t, p, b)], qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], cotsh[get1Dfrom2D(sce-1, 0, p/2, 3*b)]);
+        psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += (psid1 + psid2) * 0.5;
+
+        for(int box=3; box<=t-1; box++) {
+          psid1 = mn3(b, qr[get1Dfrom3D(box-2, sc+1-1, 0, t, p, b)], qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], qr[get1Dfrom3D(box+1-1, sc+1-1, 0, t, p, b)], cotprv[get1Dfrom2D(sc-1, 0, p/2, 3*b)]);
+          psid2 = mn3(b, qr[get1Dfrom3D(box-3, sc+1-1, 0, t, p, b)], qr[get1Dfrom3D(box-2, sc+1-1, 0, t, p, b)], qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], cotsh[get1Dfrom2D(sce-1, 0, p/2, 3*b)]);
+          psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += (psid1 + psid2) * 0.5;
+        }
+
+        box = t;
+        psid1 = mn3(b, qr[get1Dfrom3D(box-2, sc+1-1, 0, t, p, b)], qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], qrn[get1Dfrom2D(sc-1,0,p, b)], cotprv[get1Dfrom2D(sc-1, 0, p/2, 3*b)]);
+        psid2 = mn3(b, qr[get1Dfrom3D(box-3, sc+1-1, 0, t, p, b)], qr[get1Dfrom3D(box-2, sc+1-1, 0, t, p, b)], qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], cotsh[get1Dfrom2D(sce-1, 0, p/2, 3*b)]);
+        psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += (psid1 + psid2) * 0.5;
+    }
+
+    for(j=2; j<=b; j++) {
+        if(t==1) {
+            box = 1;
+            psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += mn3(b, qrp[get1Dfrom2D(sc-1, 0, p-1, b)], qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], qrn[get1Dfrom2D(sc-1,0,p, b)], cots[get1Dfrom3D(sc-1,j-2,0,p-1, b-1, 3*b)]);
+        }
+        else {
+            box = 1;
+            psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += mn3(b, qrp[get1Dfrom2D(sc-1, 0, p-1, b)], qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], qr[get1Dfrom3D(box, sc+1-1, 0, t, p, b)], cots[get1Dfrom3D(sc-1,j-2,0,p-1, b-1, 3*b)]);
+            for(box = 2; box<=t-1; box++) {
+                psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += mn3(b, qr[get1Dfrom3D(box-2, sc+1-1, 0, t, p, b)], qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], qr[get1Dfrom3D(box, sc+1-1, 0, t, p, b)], cots[get1Dfrom3D(sc-1,j-2,0,p-1, b-1, 3*b)]);
+            }
+            box = t;
+            psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += mn3(b, qr[get1Dfrom3D(box-2, sc+1-1, 0, t, p, b)], qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], qrn[get1Dfrom2D(sc-1,0,p, b)], cots[get1Dfrom3D(sc-1,j-2,0,p-1, b-1, 3*b)]);
+        }
+    }
+
+    for(sc = p/2+1; sc<=npm1; sc++) {
+        sce = sc - p/2 + 1;
+        j=1;
+
+        if(t==1) {
+            box = 1;
+            psid1 = dotp(b, &qrp[get1Dfrom2D(sc-1, 0, p-1, b)], &cotsh[get1Dfrom2D(sce-1, b, p/2, 3*b)]);
+            psid2 = dotp(b, &qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], &cotsh[get1Dfrom2D(sce-1, 2*b, p/2, 3*b)]);
+            psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += qcpp[sce-1] + psid1 + psid2;
+        }
+        else if(t==2) {
+            box = 1;
+            psid1 = dotp(b, &qrp[get1Dfrom2D(sc-1, 0, p-1, b)], &cotsh[get1Dfrom2D(sce-1, b, p/2, 3*b)]);
+            psid2 = dotp(b, &qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], &cotsh[get1Dfrom2D(sce-1, 2*b, p/2, 3*b)]);
+            psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += qcpp[sce-1] + psid1 + psid2;
+
+            box = 2;
+            psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += mn3(b, qrp[get1Dfrom2D(sc-1, 0, p-1, b)], qr[get1Dfrom3D(box-2, sc+1-1, 0, t, p, b)], qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], cotsh[get1Dfrom2D(sce-1, 0, p/2, 3*b)]);
+        }
+        else {
+            box = 1;
+            psid1 = dotp(b, &qrp[get1Dfrom2D(sc-1, 0, p-1, b)], &cotsh[get1Dfrom2D(sce-1, b, p/2, 3*b)]);
+            psid2 = dotp(b, &qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], &cotsh[get1Dfrom2D(sce-1, 2*b, p/2, 3*b)]);
+            psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += qcpp[sce-1] + psid1 + psid2;
+
+            box = 2;
+            psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += mn3(b, qrp[get1Dfrom2D(sc-1, 0, p-1, b)], qr[get1Dfrom3D(box-2, sc+1-1, 0, t, p, b)], qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], cotsh[get1Dfrom2D(sce-1, 0, p/2, 3*b)]);
+
+            for(int box = 3; box<=t-1; box++) {
+                psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += mn3(b, qr[get1Dfrom3D(box-3, sc+1-1, 0, t, p, b)], qr[get1Dfrom3D(box-2, sc+1-1, 0, t, p, b)], qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], cotsh[get1Dfrom2D(sce-1, 0, p/2, 3*b)]);
+            }
+
+            box = t;
+            psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += mn3(b, qr[get1Dfrom3D(box-3, sc+1-1, 0, t, p, b)], qr[get1Dfrom3D(box-2, sc+1-1, 0, t, p, b)], qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], cotsh[get1Dfrom2D(sce-1, 0, p/2, 3*b)]);
+        }
+
+        for(j=2; j<=b; j++) {
+            if(t==1) {
+                box=1;
+                
+            }
+        }
     }
 }
 
