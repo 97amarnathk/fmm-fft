@@ -8,13 +8,14 @@ Parallel FMM Accellerated FFT on CPUs
 
 - [ ] mfti
 - [ ] mftii
-- [ ] initg
-- [ ] flip
+- [x] initg
+- [x] flip
 - [x] shftf
-- [ ] shftl
+- [x] shftl
 - [x] vx
 - [x] wx
-- [ ] evlmf
+- [x] evlmf
+- [x] initmm
 - [ ] mft
 
 ### Written
@@ -29,6 +30,7 @@ Parallel FMM Accellerated FFT on CPUs
 * wx
 * evlmf
 * mft
+* initmm
 
 ### TODO
 
