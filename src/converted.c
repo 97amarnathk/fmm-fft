@@ -200,6 +200,20 @@ void initmm(double complex* qr, int p, int b, int t, double* initch, double comp
     }
 }
 
+double complex mn3(int n, double complex* x, double complex* y, double complex* z, double* r) {
+    double complex ans = x[0] * r[0];
+    for(int j=2; j<=n; j++) {
+        ans += x[j-1] * r[j-1];
+    }
+    for(int j=1; j<=n; j++) {
+        ans+= y[j-1]*r[n+j-1];
+    }
+    for(int j=1; j<=n; j++) {
+        ans+= z[j-1]*r[n+n+j-1];
+    }
+    return ans;
+}
+
 void flip(int lev, int shft, double* mat, int terms, double* chnods, double* x, double* wkp, double* mm) {
     double a = M_PI/(pow(2, lev));
     double b = shft;
