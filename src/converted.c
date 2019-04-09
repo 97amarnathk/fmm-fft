@@ -912,10 +912,44 @@ void mftint(double complex* qr, int lq, int p, int myid, int s, int terms, int n
         for(j=2; j<=b; j++) {
             if(t==1) {
                 box=1;
-                
+                psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += mn3(b, qrp[get1Dfrom2D(sc-1, 0, p-1, b)], qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], qrn[get1Dfrom2D(sc-1,0,p, b)], cots[get1Dfrom3D(sc-1,j-2,0,p-1, b-1, 3*b)]);
+            }
+            else {
+                box = 1;
+                psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += mn3(b, qrp[get1Dfrom2D(sc-1, 0, p-1, b)], qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], qr[get1Dfrom3D(box, sc+1-1, 0, t, p, b)], cots[get1Dfrom3D(sc-1,j-2,0,p-1, b-1, 3*b)]);
+
+                for(int box = 2; box<=t-1; box++) {
+                  psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += mn3(b, qr[get1Dfrom3D(box-2, sc+1-1, 0, t, p, b)], qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], qr[get1Dfrom3D(box, sc+1-1, 0, t, p, b)], cots[get1Dfrom3D(sc-1,j-2,0,p-1, b-1, 3*b)]);
+                }
+
+                box = t;
+                psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += mn3(b, qr[get1Dfrom3D(box-2, sc+1-1, 0, t, p, b)], qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], qrn[get1Dfrom2D(sc-1,0,p, b)], cots[get1Dfrom3D(sc-1,j-2,0,p-1, b-1, 3*b)]);
             }
         }
     }
+
+    for(int box=1; box<=t; box++) {
+        for(int px=1; pk<=b; pk++) {
+            for(int j=1; j<=npm1; j++) {
+                psit[j-1] = psiev[get1Dfrom3D(j-1, box-1, pk-1, p, t, b)];
+            }
+            for(int j=1; j<=p; j++) {
+                psiev[get1Dfrom3D(j-1, box-1, pk-1, p, t, b)] = qr[get1Dfrom3D(pk-1, 0, box-1, t, p, b)];
+                for(int sc=1; sc<=npm1; sc++) {
+                    psiev[get1Dfrom3D(j-1, box-1, pk-1, p, t, b)] += fo[get1Dfrom2D(sc-1, j-1, p, p-1)] * (psit[sc-1] - sumsec[sc-1]);
+                }
+            }
+        }
+    }
+
+    MPI_Alltoall(psiev, t*b, MPI_DOUBLE_COMPLEX, qr, t*b, MPI_DOUBLE_COMPLEX, MPI_COMM_WORLD);
+
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    myfft();
+
+    if(dir<0)
+        cjall(lq, qr);
 }
 
 void mft(int lq, double complex* qr, int dir, int p, int myid, int terms, int b, double* w, double* v, int sz1, int szwk) {
