@@ -72,7 +72,7 @@ void vx(double a, double* x, double* mat, int terms, double* chnods, double* mm,
     double ac = 3 * tan(a);
 
     for(int j=1; j<=terms; j++) {
-        double th = -1 * cos((2*j-2)/(2 * (terms-1) * M_PI)) * (2*a);
+        double th = -1 * cos((2*j-2)/(2 * (terms-1)) * M_PI) * (2*a);
         acu[j-1] = ac / tan(0.5 * th);
     }
 
@@ -107,7 +107,7 @@ void wx(double a, double* x, int xlen, double* mat, int terms, double* chnods, d
     double ac = 1/tan(a);
 
     for(int j=1; j<=terms; j++) {
-        double th = -cos( ((double)(2*j - 2)) / 2*(terms-1) * M_PI ) * (M_PI - 6*a) + M_PI;
+        double th = -cos( ((double)(2*j - 2)) / (2*(terms-1)) * M_PI ) * (M_PI - 6*a) + M_PI;
         acu[j-1] = ac * tan(0.5 * th);
         chnods[j-1] = -cos(((double)2*j -1) / (2*terms) * M_PI);
     }
@@ -138,7 +138,7 @@ void wx(double a, double* x, int xlen, double* mat, int terms, double* chnods, d
 void shftf(int lev, int dir, double* mat, int terms, double* chnods, double* x, double* wkp, double* mm) {
     double dd = (double) dir;
     double a = M_PI/pow(2, lev);
-    double ta3 = 2 * tan(a);
+    double ta3 = 3 * tan(a);
     double td2 = tan(0.5 * a);
 
     for(int j=1; j<=terms; j++) {
@@ -180,7 +180,7 @@ void shftl(int lev, int dir, double* mat, int terms, double* chnods, double* x, 
     double td2 = tan(0.5 * a);
 
     for(int j=1; j<=terms; j++) {
-        x[j-1] = (chnods[j] - dd) / (1/c + dd*c*chnods[j-1]) / td2;
+        x[j-1] = (chnods[j-1] - dd) / (1/c + dd*c*chnods[j-1]) / td2;
     }
 
     wx(0.5 * a, x, terms, mat, terms, chnods, acu);
@@ -261,7 +261,7 @@ void mftii(int lq, int p, int s, int terms, int b, int n, int szkeep, int sztemp
         n = my_log2(s);
 
         for(int j=1; j<=terms; j++) {
-            chnods[j-1] = cos((2*j-1)/(2*M_PI*terms));
+            chnods[j-1] = cos(((double)2*j-1)/(2*terms) * M_PI);
         }
 
         initg(b, s, initch, terms, wknie, chnods);
@@ -282,7 +282,7 @@ void mftii(int lq, int p, int s, int terms, int b, int n, int szkeep, int sztemp
             double gfrac = ((double)sc)/p;
 
             for(int j=1; j<=b; j++) {
-                double ffr = ((double)(2*j -1) - (((double)(2*sc))/p))/b - 1;
+                double ffr = ((double)(2*j -1) - (((double)(2*sc))/p)) / b - 1;
                 evlmf(ffr, s, lq, &evalm[get1Dfrom3D(j-1, sc-1, 0, b, p-1, terms)], terms, wkp, chnods, wkp2);
             }
 
@@ -312,17 +312,17 @@ void mftii(int lq, int p, int s, int terms, int b, int n, int szkeep, int sztemp
         myffti();
 
         for(int sc = 1; sc<=p-1; sc++) {
-            double ang = M_PI * (double)sc / p;
+            double ang = M_PI * ((double)sc) / p;
             for(int j=1; j<=p; j++) {
                 double complex temp = (ang * (1 - 2*j))*I;
-                fo[get1Dfrom2D(sc-1, j+b-1, p, p-1)] = -cexp(temp)*sin(ang);
+                fo[get1Dfrom2D(sc-1, j-1, p, p-1)] = -cexp(temp)*sin(ang);
             }
         }
 }
 
 /*
 initialise data for fmm-fft 
-*/
+*/ 
 void mfti(int lq, int p, int t, int b, double *wkkeep, double *wktemp, int szkeep, int sztemp) {
     // index array ia
     int ia[30], ind=0;
@@ -981,13 +981,13 @@ void mft(int lq, double complex* qr, int dir, int p, int myid, int terms, int b,
         ind += terms*terms*(n-2);
     }
     ia[8] = ind;
-    ind += p*p;
+    ind += terms*terms;
     ia[9] = ind;
     ind += terms*b;
     ia[10] = ind;
     ind += terms*(p - 1)*b;
     ia[11] = ind;
-    ind += (terms*p)/2;
+    ind += terms*p/2;
     ia[12] = ind;
     ind += (3*b*p)/2;
     ia[13] = ind;
@@ -997,7 +997,7 @@ void mft(int lq, double complex* qr, int dir, int p, int myid, int terms, int b,
     ia[15] = ind;
     ind += terms;
     ia[16] = ind;
-    ind += 2*(p-1)*terms;
+    ind += 2*(p-1)*p;
 
     ind = 0;
     for(int j=17; j<=18; j++) {
