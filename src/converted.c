@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-//#include <mpi.h>
+#include <mpi.h>
 #include <math.h>
 #include <complex.h>
 
@@ -502,7 +502,7 @@ void mftint(double complex* qr, int lq, int p, int myid, int s, int terms, int n
         }
 
         else if(myid % intrvl == intvlo) {
-            MPI_Send(phi[get1Dfrom3D(obase + 1 - 1 , 0, 0, 2*t + log2np - 3, p-1, terms)], pnpm1, MPI_DOUBLE_COMPLEX, prevd[get1Dfrom2D(lev+1-1, 0, p, 3)], lev, MPI_COMM_WORLD);
+            MPI_Send(&phi[get1Dfrom3D(obase + 1 - 1 , 0, 0, 2*t + log2np - 3, p-1, terms)], pnpm1, MPI_DOUBLE_COMPLEX, prevd[get1Dfrom2D(lev+1-1, 0, p, 3)], lev, MPI_COMM_WORLD);
         }
     }
 
@@ -618,7 +618,7 @@ void mftint(double complex* qr, int lq, int p, int myid, int s, int terms, int n
         nl = 2;
         for(int box=1; box<=2; box++) {
             tag++;
-            MPI_Sendrecv(phi[get1Dfrom3D(box-1, 0, 0, 2*t + log2np - 3, p-1, terms)], pnpm1, MPI_DOUBLE_COMPLEX, nextid, tag, phiopp, pnpm1, MPI_DOUBLE_COMPLEX, previd, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            MPI_Sendrecv(&phi[get1Dfrom3D(box-1, 0, 0, 2*t + log2np - 3, p-1, terms)], pnpm1, MPI_DOUBLE_COMPLEX, nextid, tag, phiopp, pnpm1, MPI_DOUBLE_COMPLEX, previd, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
             mpp(phiopp, terms, npm1, topflp, &psi[get1Dfrom3D(box-1, 0, 0, 2*t + log2np - 3, p-1, terms)]);
         }
     }
@@ -627,7 +627,7 @@ void mftint(double complex* qr, int lq, int p, int myid, int s, int terms, int n
         nl = 1;
         intrvl = p/4;
         if(myid % intrvl == 0) {
-            MPI_Sendrecv(phi[get1Dfrom3D(0, 0, 0, 2*t + log2np - 3, p-1, terms)], pnpm1, MPI_DOUBLE_COMPLEX, nextd[get1Dfrom2D(0, 0, p, 3)], tag, phiopp, pnpm1, MPI_DOUBLE_COMPLEX, prevd[get1Dfrom2D(0, 0, p, 3)], tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            MPI_Sendrecv(&phi[get1Dfrom3D(0, 0, 0, 2*t + log2np - 3, p-1, terms)], pnpm1, MPI_DOUBLE_COMPLEX, nextd[get1Dfrom2D(0, 0, p, 3)], tag, phiopp, pnpm1, MPI_DOUBLE_COMPLEX, prevd[get1Dfrom2D(0, 0, p, 3)], tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         }
     }
 
@@ -642,10 +642,10 @@ void mftint(double complex* qr, int lq, int p, int myid, int s, int terms, int n
         tag+=10;
 
         if(myid%intvlo == 0) {
-            MPI_Send(psi[get1Dfrom3D(obase+1-1, 0, 0, 2*t + log2np - 3, p-1, terms)], pnpm1, MPI_DOUBLE_COMPLEX, nextd[get1Dfrom2D(lev-1, 0, p, 3)], tag+1, MPI_COMM_WORLD);
-            MPI_Sendrecv(phi[get1Dfrom3D(base+1-1, 0, 0, 2*t + log2np - 3, p-1, terms)], pnpm1, MPI_DOUBLE_COMPLEX, nextd[get1Dfrom2D(lev-1, 1, p, 3)], tag+2, phim2, pnpm1, MPI_DOUBLE_COMPLEX, prevd[get1Dfrom2D(lev-1, 1, p, 3)], tag+2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            MPI_Sendrecv(phi[get1Dfrom3D(base+1-1, 0, 0, 2*t + log2np - 3, p-1, terms)], pnpm1, MPI_DOUBLE_COMPLEX, prevd[get1Dfrom2D(lev-1, 1, p, 3)], tag+3, phip2, pnpm1, MPI_DOUBLE_COMPLEX, nextd[get1Dfrom2D(lev-1, 1, p, 3)], tag+3, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            MPI_Sendrecv(phi[get1Dfrom3D(base+1-1, 0, 0, 2*t + log2np - 3, p-1, terms)], pnpm1, MPI_DOUBLE_COMPLEX, nextd[get1Dfrom2D(lev-1, 2, p, 3)], tag+5, phip3, pnpm1, MPI_DOUBLE_COMPLEX, nextd[get1Dfrom2D(lev-1, 2, p, 3)], tag+4, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            MPI_Send(&psi[get1Dfrom3D(obase+1-1, 0, 0, 2*t + log2np - 3, p-1, terms)], pnpm1, MPI_DOUBLE_COMPLEX, nextd[get1Dfrom2D(lev-1, 0, p, 3)], tag+1, MPI_COMM_WORLD);
+            MPI_Sendrecv(&phi[get1Dfrom3D(base+1-1, 0, 0, 2*t + log2np - 3, p-1, terms)], pnpm1, MPI_DOUBLE_COMPLEX, nextd[get1Dfrom2D(lev-1, 1, p, 3)], tag+2, phim2, pnpm1, MPI_DOUBLE_COMPLEX, prevd[get1Dfrom2D(lev-1, 1, p, 3)], tag+2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            MPI_Sendrecv(&phi[get1Dfrom3D(base+1-1, 0, 0, 2*t + log2np - 3, p-1, terms)], pnpm1, MPI_DOUBLE_COMPLEX, prevd[get1Dfrom2D(lev-1, 1, p, 3)], tag+3, phip2, pnpm1, MPI_DOUBLE_COMPLEX, nextd[get1Dfrom2D(lev-1, 1, p, 3)], tag+3, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            MPI_Sendrecv(&phi[get1Dfrom3D(base+1-1, 0, 0, 2*t + log2np - 3, p-1, terms)], pnpm1, MPI_DOUBLE_COMPLEX, nextd[get1Dfrom2D(lev-1, 2, p, 3)], tag+5, phip3, pnpm1, MPI_DOUBLE_COMPLEX, nextd[get1Dfrom2D(lev-1, 2, p, 3)], tag+4, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
             mpp(&psi[get1Dfrom3D(obase+1-1, 0, 0, 2*t + log2np - 3, p-1, terms)], terms, npm1, &shftlp[get1Dfrom3D(lev-3, 0, 0, n-2, terms, terms)], shpsi);
             mpp(phim2, terms, npm1, &flip2p[get1Dfrom3D(lev-3, 0, 0, n-2, terms, terms)], f2p);
@@ -659,10 +659,10 @@ void mftint(double complex* qr, int lq, int p, int myid, int s, int terms, int n
             }
         }
         else if(myid%intvlo == intrvl) {
-            MPI_Sendrecv(phi[get1Dfrom3D(base+1-1, 0, 0, 2*t + log2np - 3, p-1, terms)], pnpm1, MPI_DOUBLE_COMPLEX, prevd[get1Dfrom2D(lev-1, 2, p, 3)], tag+4, psiprv, pnpm1, MPI_DOUBLE_COMPLEX, prevd[get1Dfrom2D(lev-1, 0, p, 3)], tag+1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            MPI_Sendrecv(&phi[get1Dfrom3D(base+1-1, 0, 0, 2*t + log2np - 3, p-1, terms)], pnpm1, MPI_DOUBLE_COMPLEX, prevd[get1Dfrom2D(lev-1, 2, p, 3)], tag+4, psiprv, pnpm1, MPI_DOUBLE_COMPLEX, prevd[get1Dfrom2D(lev-1, 0, p, 3)], tag+1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
             MPI_Recv(phim3, pnpm1, MPI_DOUBLE_COMPLEX, prevd[get1Dfrom2D(lev-1, 2, p, 3)], tag+5, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            MPI_Sendrecv(phi[get1Dfrom3D(base+1-1, 0, 0, 2*t + log2np - 3, p-1, terms)], pnpm1, MPI_DOUBLE_COMPLEX, nextd[get1Dfrom2D(lev-1, 1, p, 3)], tag+6, phim2, pnpm1, MPI_DOUBLE_COMPLEX, prevd[get1Dfrom2D(lev-1, 1, p, 3)], tag+6, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            MPI_Sendrecv(phi[get1Dfrom3D(base+1-1, 0, 0, 2*t + log2np - 3, p-1, terms)], pnpm1, MPI_DOUBLE_COMPLEX, prevd[get1Dfrom2D(lev-1, 1, p, 3)], tag+7, phip2, pnpm1, MPI_DOUBLE_COMPLEX, nextd[get1Dfrom2D(lev-1, 1, p, 3)], tag+7, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            MPI_Sendrecv(&phi[get1Dfrom3D(base+1-1, 0, 0, 2*t + log2np - 3, p-1, terms)], pnpm1, MPI_DOUBLE_COMPLEX, nextd[get1Dfrom2D(lev-1, 1, p, 3)], tag+6, phim2, pnpm1, MPI_DOUBLE_COMPLEX, prevd[get1Dfrom2D(lev-1, 1, p, 3)], tag+6, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            MPI_Sendrecv(&phi[get1Dfrom3D(base+1-1, 0, 0, 2*t + log2np - 3, p-1, terms)], pnpm1, MPI_DOUBLE_COMPLEX, prevd[get1Dfrom2D(lev-1, 1, p, 3)], tag+7, phip2, pnpm1, MPI_DOUBLE_COMPLEX, nextd[get1Dfrom2D(lev-1, 1, p, 3)], tag+7, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
             mpp(psiprv, terms, npm1, &shftln[get1Dfrom3D(lev-3, 0, 0, n-2, terms, terms)], shpsi);
             mpp(phim2, terms, npm1, &flip2p[get1Dfrom3D(lev-3, 0, 0, n-2, terms, terms)], f2p);
@@ -799,28 +799,28 @@ void mftint(double complex* qr, int lq, int p, int myid, int s, int terms, int n
         j=1;
         if(t==1) {
             box=1;
-            psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += mn3(b, qrp[get1Dfrom2D(sc-1, 0, p-1, b)], qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], qrn[get1Dfrom2D(sc-1,0,p, b)], cotprv[get1Dfrom2D(sc-1, 0, p/2, 3*b)]);
+            psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += mn3(b, &qrp[get1Dfrom2D(sc-1, 0, p-1, b)], &qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], &qrn[get1Dfrom2D(sc-1,0,p, b)], &cotprv[get1Dfrom2D(sc-1, 0, p/2, 3*b)]);
         }
         else {
             box = 1;
-            psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += mn3(b, qrp[get1Dfrom2D(sc-1, 0, p-1, b)], qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], qr[get1Dfrom3D(box+1-1, sc+1-1, 0, t, p, b)], cotprv[get1Dfrom2D(sc-1, 0, p/2, 3*b)]);
+            psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += mn3(b, &qrp[get1Dfrom2D(sc-1, 0, p-1, b)], &qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], &qr[get1Dfrom3D(box+1-1, sc+1-1, 0, t, p, b)], &cotprv[get1Dfrom2D(sc-1, 0, p/2, 3*b)]);
             for(box=2; box<=t-1; box++) {
-               psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += mn3(b, qr[get1Dfrom3D(box-2, sc+1-1, 0, t, p, b)], qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], qr[get1Dfrom3D(box+1-1, sc+1-1, 0, t, p, b)], cotprv[get1Dfrom2D(sc-1, 0, p/2, 3*b)]);
+               psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += mn3(b, &qr[get1Dfrom3D(box-2, sc+1-1, 0, t, p, b)], &qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], &qr[get1Dfrom3D(box+1-1, sc+1-1, 0, t, p, b)], &cotprv[get1Dfrom2D(sc-1, 0, p/2, 3*b)]);
             }
             box = t;
-            psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += mn3(b, qr[get1Dfrom3D(box-2, sc+1-1, 0, t, p, b)], qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], qrn[get1Dfrom2D(sc-1,0,p, b)], cotprv[get1Dfrom2D(sc-1, 0, p/2, 3*b)]);
+            psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += mn3(b, &qr[get1Dfrom3D(box-2, sc+1-1, 0, t, p, b)], &qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], &qrn[get1Dfrom2D(sc-1,0,p, b)], &cotprv[get1Dfrom2D(sc-1, 0, p/2, 3*b)]);
         }
 
         for(int j=2; j<=b; j++) {
             if(t==1) {
                 box=1;
-                psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += mn3(b, qrp[get1Dfrom2D(sc-1, 0, p-1, b)], qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], qrn[get1Dfrom2D(sc-1,0,p, b)], cots[get1Dfrom3D(sc-1,j-2,0,p-1, b-1, 3*b)]);
+                psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += mn3(b, &qrp[get1Dfrom2D(sc-1, 0, p-1, b)], &qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], &qrn[get1Dfrom2D(sc-1,0,p, b)], &cots[get1Dfrom3D(sc-1,j-2,0,p-1, b-1, 3*b)]);
             }
             else {
                 box=1;
-                psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += mn3(b, qrp[get1Dfrom2D(sc-1, 0, p-1, b)], qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], qr[get1Dfrom3D(box+1-1, sc+1-1, 0, t, p, b)], cots[get1Dfrom3D(sc-1,j-2,0,p-1, b-1, 3*b)]);
+                psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += mn3(b, &qrp[get1Dfrom2D(sc-1, 0, p-1, b)], &qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], &qr[get1Dfrom3D(box+1-1, sc+1-1, 0, t, p, b)], &cots[get1Dfrom3D(sc-1,j-2,0,p-1, b-1, 3*b)]);
                 box = t;
-                psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += mn3(b, qr[get1Dfrom3D(box-2, sc+1-1, 0, t, p, b)], qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], qrn[get1Dfrom2D(sc-1,0,p, b)], cots[get1Dfrom3D(sc-1,j-2,0,p-1, b-1, 3*b)]);
+                psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += mn3(b, &qr[get1Dfrom3D(box-2, sc+1-1, 0, t, p, b)], &qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], &qrn[get1Dfrom2D(sc-1,0,p, b)], &cots[get1Dfrom3D(sc-1,j-2,0,p-1, b-1, 3*b)]);
             }
         }
     }
@@ -830,26 +830,26 @@ void mftint(double complex* qr, int lq, int p, int myid, int s, int terms, int n
     j = 1;
     if(t==1) {
         box=1;
-        psid1 = mn3(b, qrp[get1Dfrom2D(sc-1, 0, p-1, b)], qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], qrn[get1Dfrom2D(sc-1,0,p, b)], cotprv[get1Dfrom2D(sc-1, 0, p/2, 3*b)]);
+        psid1 = mn3(b, &qrp[get1Dfrom2D(sc-1, 0, p-1, b)], &qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], &qrn[get1Dfrom2D(sc-1,0,p, b)], &cotprv[get1Dfrom2D(sc-1, 0, p/2, 3*b)]);
         psid2 = dotp(b, &qrp[get1Dfrom2D(sc-1, 0, p-1, b)], &cotsh[get1Dfrom2D(sce-1, 1+b-1, p/2, 3*b)]);
         psid3 = dotp(b, &qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], &cotsh[get1Dfrom2D(sce-1, 1+2*b-1, p/2, 3*b)]);
         psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += (psid1 + qcpp[sce-1] + psid2 + psid3) * 0.5;
     }
     else if(t==2) {
         box=1;
-        psid1 = mn3(b, qrp[get1Dfrom2D(sc-1, 0, p-1, b)], qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], qr[get1Dfrom3D(box+1-1, sc+1-1, 0, t, p, b)], cotprv[get1Dfrom2D(sc-1, 0, p/2, 3*b)]);
+        psid1 = mn3(b, &qrp[get1Dfrom2D(sc-1, 0, p-1, b)], &qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], &qr[get1Dfrom3D(box+1-1, sc+1-1, 0, t, p, b)], &cotprv[get1Dfrom2D(sc-1, 0, p/2, 3*b)]);
         psid2 = dotp(b, &qrp[get1Dfrom2D(sc-1, 0, p-1, b)], &cotsh[get1Dfrom2D(sce-1, 1+b-1, p/2, 3*b)]);
         psid3 = dotp(b,&qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], &cotsh[get1Dfrom2D(sce-1, 1+2*b-1, p/2, 3*b)]);
         psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += (psid1 + qcpp[sce-1] + psid2 + psid3) * 0.5;
 
         box=2;
-        psid1 = mn3(b, qr[get1Dfrom3D(box-2, sc+1-1, 0, t, p, b)], qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], qrn[get1Dfrom2D(sc-1,0,p, b)], cotprv[get1Dfrom2D(sc-1, 0, p/2, 3*b)]);
-        psid2 = mn3(b, qrp[get1Dfrom2D(sc-1, 0, p-1, b)], qr[get1Dfrom3D(box-2, sc+1-1, 0, t, p, b)], qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], &cotsh[get1Dfrom2D(sce-1, 0, p/2, 3*b)]);
+        psid1 = mn3(b, &qr[get1Dfrom3D(box-2, sc+1-1, 0, t, p, b)], &qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], &qrn[get1Dfrom2D(sc-1,0,p, b)], &cotprv[get1Dfrom2D(sc-1, 0, p/2, 3*b)]);
+        psid2 = mn3(b, &qrp[get1Dfrom2D(sc-1, 0, p-1, b)], &qr[get1Dfrom3D(box-2, sc+1-1, 0, t, p, b)], &qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], &cotsh[get1Dfrom2D(sce-1, 0, p/2, 3*b)]);
         psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += (psid1 + psid2) * 0.5;
     }
     else {
         box = 1;
-        psid1 = mn3(b, qrp[get1Dfrom2D(sc-1, 0, p-1, b)], qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], qr[get1Dfrom3D(box+1-1, sc+1-1, 0, t, p, b)], cotprv[get1Dfrom2D(sc-1, 0, p/2, 3*b)]);
+        psid1 = mn3(b, &qrp[get1Dfrom2D(sc-1, 0, p-1, b)], &qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], &qr[get1Dfrom3D(box+1-1, sc+1-1, 0, t, p, b)], &cotprv[get1Dfrom2D(sc-1, 0, p/2, 3*b)]);
         psid2 = dotp(b, &qrp[get1Dfrom2D(sc-1, 0, p-1, b)], &cotsh[get1Dfrom2D(sce-1, 1+b-1, p/2, 3*b)]);
         psid3 = dotp(b,&qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], &cotsh[get1Dfrom2D(sce-1, 1+2*b-1, p/2, 3*b)]);
         psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += (psid1 + qcpp[sce-1] + psid2, psid3) * 0.5;
@@ -860,30 +860,30 @@ void mftint(double complex* qr, int lq, int p, int myid, int s, int terms, int n
         psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += (psid1 + psid2) * 0.5;
 
         for(int box=3; box<=t-1; box++) {
-          psid1 = mn3(b, qr[get1Dfrom3D(box-2, sc+1-1, 0, t, p, b)], qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], qr[get1Dfrom3D(box+1-1, sc+1-1, 0, t, p, b)], cotprv[get1Dfrom2D(sc-1, 0, p/2, 3*b)]);
-          psid2 = mn3(b, qr[get1Dfrom3D(box-3, sc+1-1, 0, t, p, b)], qr[get1Dfrom3D(box-2, sc+1-1, 0, t, p, b)], qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], cotsh[get1Dfrom2D(sce-1, 0, p/2, 3*b)]);
+          psid1 = mn3(b, &qr[get1Dfrom3D(box-2, sc+1-1, 0, t, p, b)], &qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], &qr[get1Dfrom3D(box+1-1, sc+1-1, 0, t, p, b)], &cotprv[get1Dfrom2D(sc-1, 0, p/2, 3*b)]);
+          psid2 = mn3(b, &qr[get1Dfrom3D(box-3, sc+1-1, 0, t, p, b)], &qr[get1Dfrom3D(box-2, sc+1-1, 0, t, p, b)], &qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], &cotsh[get1Dfrom2D(sce-1, 0, p/2, 3*b)]);
           psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += (psid1 + psid2) * 0.5;
         }
 
         box = t;
-        psid1 = mn3(b, qr[get1Dfrom3D(box-2, sc+1-1, 0, t, p, b)], qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], qrn[get1Dfrom2D(sc-1,0,p, b)], cotprv[get1Dfrom2D(sc-1, 0, p/2, 3*b)]);
-        psid2 = mn3(b, qr[get1Dfrom3D(box-3, sc+1-1, 0, t, p, b)], qr[get1Dfrom3D(box-2, sc+1-1, 0, t, p, b)], qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], cotsh[get1Dfrom2D(sce-1, 0, p/2, 3*b)]);
+        psid1 = mn3(b, &qr[get1Dfrom3D(box-2, sc+1-1, 0, t, p, b)], &qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], &qrn[get1Dfrom2D(sc-1,0,p, b)], &cotprv[get1Dfrom2D(sc-1, 0, p/2, 3*b)]);
+        psid2 = mn3(b, &qr[get1Dfrom3D(box-3, sc+1-1, 0, t, p, b)], &qr[get1Dfrom3D(box-2, sc+1-1, 0, t, p, b)], &qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], &cotsh[get1Dfrom2D(sce-1, 0, p/2, 3*b)]);
         psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += (psid1 + psid2) * 0.5;
     }
 
     for(j=2; j<=b; j++) {
         if(t==1) {
             box = 1;
-            psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += mn3(b, qrp[get1Dfrom2D(sc-1, 0, p-1, b)], qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], qrn[get1Dfrom2D(sc-1,0,p, b)], cots[get1Dfrom3D(sc-1,j-2,0,p-1, b-1, 3*b)]);
+            psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += mn3(b, &qrp[get1Dfrom2D(sc-1, 0, p-1, b)], &qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], &qrn[get1Dfrom2D(sc-1,0,p, b)], &cots[get1Dfrom3D(sc-1,j-2,0,p-1, b-1, 3*b)]);
         }
         else {
             box = 1;
-            psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += mn3(b, qrp[get1Dfrom2D(sc-1, 0, p-1, b)], qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], qr[get1Dfrom3D(box, sc+1-1, 0, t, p, b)], cots[get1Dfrom3D(sc-1,j-2,0,p-1, b-1, 3*b)]);
+            psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += mn3(b, &qrp[get1Dfrom2D(sc-1, 0, p-1, b)], &qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], &qr[get1Dfrom3D(box, sc+1-1, 0, t, p, b)], &cots[get1Dfrom3D(sc-1,j-2,0,p-1, b-1, 3*b)]);
             for(box = 2; box<=t-1; box++) {
-                psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += mn3(b, qr[get1Dfrom3D(box-2, sc+1-1, 0, t, p, b)], qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], qr[get1Dfrom3D(box, sc+1-1, 0, t, p, b)], cots[get1Dfrom3D(sc-1,j-2,0,p-1, b-1, 3*b)]);
+                psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += mn3(b, &qr[get1Dfrom3D(box-2, sc+1-1, 0, t, p, b)], &qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], &qr[get1Dfrom3D(box, sc+1-1, 0, t, p, b)], &cots[get1Dfrom3D(sc-1,j-2,0,p-1, b-1, 3*b)]);
             }
             box = t;
-            psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += mn3(b, qr[get1Dfrom3D(box-2, sc+1-1, 0, t, p, b)], qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], qrn[get1Dfrom2D(sc-1,0,p, b)], cots[get1Dfrom3D(sc-1,j-2,0,p-1, b-1, 3*b)]);
+            psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += mn3(b, &qr[get1Dfrom3D(box-2, sc+1-1, 0, t, p, b)], &qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], &qrn[get1Dfrom2D(sc-1,0,p, b)], &cots[get1Dfrom3D(sc-1,j-2,0,p-1, b-1, 3*b)]);
         }
     }
 
