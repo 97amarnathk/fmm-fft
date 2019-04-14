@@ -4,6 +4,8 @@
 #include <math.h>
 #include <complex.h>
 
+#include <fftw3.h>
+
 #define M_PI 3.14159265358979323846264338327950288
 
 /* 
@@ -44,7 +46,7 @@ int get1Dfrom4D(int i, int j, int k, int l, int dim1, int dim2, int dim3, int di
     return((i * dim2 * dim3 * dim4) + (j*dim3*dim4) + k*dim4 + l);
 }
 
-int my_log(int x) {
+int my_log2(int x) {
     int ans = 0;
     while(x>1) {
         x/=2;
@@ -309,7 +311,7 @@ void mftii(int lq, int p, int s, int terms, int b, int n, int szkeep, int sztemp
             }
         }
 
-        myffti();
+        //myffti();
 
         for(int sc = 1; sc<=p-1; sc++) {
             double ang = M_PI * ((double)sc) / p;
@@ -571,7 +573,7 @@ void mftint(double complex* qr, int lq, int p, int myid, int s, int terms, int n
     /* Unpack:  packnr -> phin, qrn
           packpr -> phip, qrp, qcpp */
 
-    int pk = 0;
+    pk = 0;
     int lr = 0;
 
     for(int lev = lup+1; lev<=n; lev++) {
@@ -631,7 +633,7 @@ void mftint(double complex* qr, int lq, int p, int myid, int s, int terms, int n
         }
     }
 
-    int base = 0;
+    base = 0;
 
  /* -------- Higher levels requiring communication */   
     for(int lev = 3; lev<=log2np; lev++) {
@@ -679,7 +681,7 @@ void mftint(double complex* qr, int lq, int p, int myid, int s, int terms, int n
 
 /* -------- Lower levels not requiring communication */
 
-    int lr = 0;
+    lr = 0;
     for(int lev=lup+1; lev<=n; lev++) {
         int oldnl = nl;
         nl = nl*2;
@@ -765,8 +767,7 @@ void mftint(double complex* qr, int lq, int p, int myid, int s, int terms, int n
     int sce = 1;
     int j=1;
     int box = 1;
-    double complex psit2;
-    double complex psit1 = dotp(terms, &psi[get1Dfrom3D(base+box-1, sc-1, 0, 2*t + log2np - 3, p-1, terms)], &evalm[get1Dfrom3D(j-1, sc-1, 0, b, p-1, terms)]);
+    psit1 = dotp(terms, &psi[get1Dfrom3D(base+box-1, sc-1, 0, 2*t + log2np - 3, p-1, terms)], &evalm[get1Dfrom3D(j-1, sc-1, 0, b, p-1, terms)]);
     psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] = 0.5 * (psit1 + extr[sce-1]);
 
     for(box = 2; box<=t; box++) {
@@ -855,8 +856,8 @@ void mftint(double complex* qr, int lq, int p, int myid, int s, int terms, int n
         psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += (psid1 + qcpp[sce-1] + psid2, psid3) * 0.5;
 
         box = 2;
-        psid1 = mn3(b, qr[get1Dfrom3D(box-2, sc+1-1, 0, t, p, b)], qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], qr[get1Dfrom3D(box+1-1, sc+1-1, 0, t, p, b)], cotprv[get1Dfrom2D(sc-1, 0, p/2, 3*b)]);
-        psid2 = mn3(b, qrp[get1Dfrom2D(sc-1, 0, p-1, b)], qr[get1Dfrom3D(box-2, sc+1-1, 0, t, p, b)], qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], cotsh[get1Dfrom2D(sce-1, 0, p/2, 3*b)]);
+        psid1 = mn3(b, &qr[get1Dfrom3D(box-2, sc+1-1, 0, t, p, b)], &qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], &qr[get1Dfrom3D(box+1-1, sc+1-1, 0, t, p, b)], &cotprv[get1Dfrom2D(sc-1, 0, p/2, 3*b)]);
+        psid2 = mn3(b, &qrp[get1Dfrom2D(sc-1, 0, p-1, b)], &qr[get1Dfrom3D(box-2, sc+1-1, 0, t, p, b)], &qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], &cotsh[get1Dfrom2D(sce-1, 0, p/2, 3*b)]);
         psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += (psid1 + psid2) * 0.5;
 
         for(int box=3; box<=t-1; box++) {
@@ -904,7 +905,7 @@ void mftint(double complex* qr, int lq, int p, int myid, int s, int terms, int n
             psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += qcpp[sce-1] + psid1 + psid2;
 
             box = 2;
-            psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += mn3(b, qrp[get1Dfrom2D(sc-1, 0, p-1, b)], qr[get1Dfrom3D(box-2, sc+1-1, 0, t, p, b)], qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], cotsh[get1Dfrom2D(sce-1, 0, p/2, 3*b)]);
+            psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += mn3(b, &qrp[get1Dfrom2D(sc-1, 0, p-1, b)], &qr[get1Dfrom3D(box-2, sc+1-1, 0, t, p, b)], &qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], &cotsh[get1Dfrom2D(sce-1, 0, p/2, 3*b)]);
         }
         else {
             box = 1;
@@ -913,31 +914,31 @@ void mftint(double complex* qr, int lq, int p, int myid, int s, int terms, int n
             psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += qcpp[sce-1] + psid1 + psid2;
 
             box = 2;
-            psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += mn3(b, qrp[get1Dfrom2D(sc-1, 0, p-1, b)], qr[get1Dfrom3D(box-2, sc+1-1, 0, t, p, b)], qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], cotsh[get1Dfrom2D(sce-1, 0, p/2, 3*b)]);
+            psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += mn3(b, &qrp[get1Dfrom2D(sc-1, 0, p-1, b)], &qr[get1Dfrom3D(box-2, sc+1-1, 0, t, p, b)], &qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], &cotsh[get1Dfrom2D(sce-1, 0, p/2, 3*b)]);
 
             for(int box = 3; box<=t-1; box++) {
-                psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += mn3(b, qr[get1Dfrom3D(box-3, sc+1-1, 0, t, p, b)], qr[get1Dfrom3D(box-2, sc+1-1, 0, t, p, b)], qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], cotsh[get1Dfrom2D(sce-1, 0, p/2, 3*b)]);
+                psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += mn3(b, &qr[get1Dfrom3D(box-3, sc+1-1, 0, t, p, b)], &qr[get1Dfrom3D(box-2, sc+1-1, 0, t, p, b)], &qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], &cotsh[get1Dfrom2D(sce-1, 0, p/2, 3*b)]);
             }
 
             box = t;
-            psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += mn3(b, qr[get1Dfrom3D(box-3, sc+1-1, 0, t, p, b)], qr[get1Dfrom3D(box-2, sc+1-1, 0, t, p, b)], qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], cotsh[get1Dfrom2D(sce-1, 0, p/2, 3*b)]);
+            psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += mn3(b, &qr[get1Dfrom3D(box-3, sc+1-1, 0, t, p, b)], &qr[get1Dfrom3D(box-2, sc+1-1, 0, t, p, b)], &qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], &cotsh[get1Dfrom2D(sce-1, 0, p/2, 3*b)]);
         }
 
         for(j=2; j<=b; j++) {
             if(t==1) {
                 box=1;
-                psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += mn3(b, qrp[get1Dfrom2D(sc-1, 0, p-1, b)], qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], qrn[get1Dfrom2D(sc-1,0,p, b)], cots[get1Dfrom3D(sc-1,j-2,0,p-1, b-1, 3*b)]);
+                psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += mn3(b, &qrp[get1Dfrom2D(sc-1, 0, p-1, b)], &qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], &qrn[get1Dfrom2D(sc-1,0,p, b)], &cots[get1Dfrom3D(sc-1,j-2,0,p-1, b-1, 3*b)]);
             }
             else {
                 box = 1;
-                psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += mn3(b, qrp[get1Dfrom2D(sc-1, 0, p-1, b)], qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], qr[get1Dfrom3D(box, sc+1-1, 0, t, p, b)], cots[get1Dfrom3D(sc-1,j-2,0,p-1, b-1, 3*b)]);
+                psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += mn3(b, &qrp[get1Dfrom2D(sc-1, 0, p-1, b)], &qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], &qr[get1Dfrom3D(box, sc+1-1, 0, t, p, b)], &cots[get1Dfrom3D(sc-1,j-2,0,p-1, b-1, 3*b)]);
 
                 for(int box = 2; box<=t-1; box++) {
-                  psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += mn3(b, qr[get1Dfrom3D(box-2, sc+1-1, 0, t, p, b)], qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], qr[get1Dfrom3D(box, sc+1-1, 0, t, p, b)], cots[get1Dfrom3D(sc-1,j-2,0,p-1, b-1, 3*b)]);
+                  psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += mn3(b, &qr[get1Dfrom3D(box-2, sc+1-1, 0, t, p, b)], &qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], &qr[get1Dfrom3D(box, sc+1-1, 0, t, p, b)], &cots[get1Dfrom3D(sc-1,j-2,0,p-1, b-1, 3*b)]);
                 }
 
                 box = t;
-                psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += mn3(b, qr[get1Dfrom3D(box-2, sc+1-1, 0, t, p, b)], qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], qrn[get1Dfrom2D(sc-1,0,p, b)], cots[get1Dfrom3D(sc-1,j-2,0,p-1, b-1, 3*b)]);
+                psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += mn3(b, &qr[get1Dfrom3D(box-2, sc+1-1, 0, t, p, b)], &qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], &qrn[get1Dfrom2D(sc-1,0,p, b)], &cots[get1Dfrom3D(sc-1,j-2,0,p-1, b-1, 3*b)]);
             }
         }
     }
@@ -960,13 +961,13 @@ void mftint(double complex* qr, int lq, int p, int myid, int s, int terms, int n
 
     MPI_Barrier(MPI_COMM_WORLD);
 
-    myfft();
+    //myfft();
 
     if(dir<0)
         cjall(lq, qr);
 }
 
-void mft(int lq, double complex* qr, int dir, int p, int myid, int terms, int b, double* w, double* v, int sz1, int szwk) {
+void mft(int lq, double complex* qr, int dir, int p, int myid, int terms, int b, double* w, double* v, int sz1, int szwk, fftw_plan forward_plan) {
     MPI_Barrier(MPI_COMM_WORLD);
     int s = lq/b;
     int t = s/p;
@@ -1066,4 +1067,101 @@ void mft(int lq, double complex* qr, int dir, int p, int myid, int terms, int b,
         &v[ia[43]], &v[ia[44]], &v[ia[45]], &v[ia[46]], &v[ia[47]], &v[ia[48]],
         &v[ia[49]], &v[ia[50]], &v[ia[51]], &v[ia[52]], &v[ia[53]], &v[ia[54]], &v[ia[55]]
     );
+
+    fftw_execute(forward_plan);
+}
+
+int main(int argc, char* argv[]) {
+    /*
+    * N : fft size
+    * P : number of processors
+    * B : number of boxes
+    * T : number of terms
+    */
+    int myid, world_size;
+
+    MPI_Init(&argc,&argv);
+    MPI_Comm_rank(MPI_COMM_WORLD,&myid);
+    MPI_Comm_size(MPI_COMM_WORLD,&world_size);
+
+    if(argc<4) {
+        printf("ERROR : Provide correct args\n");
+        MPI_Finalize();
+        return 0;
+    }
+
+    int N, P, B, T;
+    N = atoi(argv[1]);
+    P = atoi(argv[2]);
+    B = atoi(argv[3]);
+    T = atoi(argv[4]);
+
+    int local_length = N/P;
+
+    fftw_complex *x = 0;
+    x  = fftw_malloc(sizeof(fftw_complex)*local_length);
+
+    if(myid == 0) {
+        // send local data to other processors
+        for(int proc = 1; proc<P; proc++) {
+            for(int i=0; i<local_length; i++) {
+                x[i] = (fftw_complex)proc;
+            }
+            MPI_Send(x, local_length, MPI_DOUBLE_COMPLEX, proc, 0, MPI_COMM_WORLD);
+        }
+
+        // assign local data of id 0
+        for(int i=0; i<local_length; i++) {
+            x[i] = 0;
+        }
+    }
+
+    else {
+        // receive
+        MPI_Recv(x, local_length, MPI_DOUBLE_COMPLEX, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    }
+
+    /************Test MPI *****************/
+    /*for(int proc=0; proc<P; proc++) {
+        MPI_Barrier(MPI_COMM_WORLD);
+        if(myid == proc) {
+            printf("P %d ", proc);
+            for(int i=0; i<local_length; i++) {
+                printf("(%.1f+i%.1f) ", creal(x[i]), cimag(x[i]));
+            }
+            printf("\n");
+        }
+        MPI_Barrier(MPI_COMM_WORLD);
+    }*/
+    /************End Test *****************/
+
+    //initialise v and w
+    int w_elements, v_elements;
+    double* w;
+    double* v;
+    
+    w_elements = 8 * ((int)pow(T, 2)) * my_log2(local_length/B) + (3*B + 2*P)*B*P + 2*P*(P+T);//8*(t**2)*log2(lq/b) + (3*b + 2*p)*b*p + 2*p*(p + t)
+    v_elements = 8*T*(P-1)*(local_length/B/P + (1 + 2*T)*my_log2(local_length/B) + my_log2(P) + 2) + 12*P*(B + 3) + 3*T;//8*t*(p-1)*(lq/b/p + (1+2*t)*log2(lq/b) + log2(p) + 2) + 12*p*(b + 3) + 3*t
+    
+    w = (double*)malloc(sizeof(double) * w_elements);
+    v = (double*)malloc(sizeof(double) * v_elements);
+
+    
+    //mfti
+    fftw_plan forward_plan = fftw_plan_dft(1, &N, x, x, FFTW_FORWARD, FFTW_ESTIMATE);
+    mfti(local_length, P, T, B, w, v, 0, 0);
+
+    //mft
+    mft(local_length, x, 1, P, myid, T, B, w, v, 0, 0, forward_plan);
+
+    //SUCCESS
+    if(myid==0)
+        printf("SUCCESS");
+
+    // free resources
+    fftw_free(x);
+    fftw_destroy_plan(forward_plan);
+    free(w);
+    free(v);
+    MPI_Finalize();
 }
