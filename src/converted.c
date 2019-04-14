@@ -400,7 +400,7 @@ void mftint(double complex* qr, int lq, int p, int myid, int s, int terms, int n
     int pnpm1 = terms*npm1;
 
     int nextid = (myid + 1)%p;
-    int previd = (myid - 1)%p;
+    int previd = (myid + npm1)%p;
 
     double complex psit1, psit2, psid1, psid2, psid3;
     for(int lev = 1; lev<=log2np; lev++) {
@@ -444,8 +444,8 @@ void mftint(double complex* qr, int lq, int p, int myid, int s, int terms, int n
         }
     }
 
-    MPI_Reduce(sump, sumsec, npm1, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, MPI_COMM_WORLD);
-    MPI_Bcast(sumsec, npm1, MPI_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD);
+    MPI_Reduce(sump, sumsec, npm1, MPI_C_DOUBLE_COMPLEX, MPI_SUM, 0, MPI_COMM_WORLD);
+    MPI_Bcast(sumsec, npm1, MPI_C_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD);
 
     for(int sc=1; sc<=npm1; sc++) {
         sumsec[sc-1] *= (I/dlq);
@@ -492,8 +492,8 @@ void mftint(double complex* qr, int lq, int p, int myid, int s, int terms, int n
         intvlo = intrvl/2;
 
         if(myid%intrvl == 0) {
-            MPI_Recv(phr, pnpm1, MPI_DOUBLE_COMPLEX, nextd[get1Dfrom2D(lev+1-1, 0, p, 3)], lev, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            mpp(&phi[get1Dfrom3D(obase + 1 - 1 , 0, 0, 2*t + log2np - 3, p-1, terms)], terms, npm1, &shftfp[get1Dfrom3D(lev-1-1, 0, 0, n-2, terms, terms)], phils);
+            MPI_Recv(phr, pnpm1, MPI_C_DOUBLE_COMPLEX, nextd[get1Dfrom2D(lev+1-1, 0, p, 3)], lev, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            mpp(&phi[get1Dfrom3D(obase + 1 - 1 , 0, 0, 2*t + log2np - 3, p-1, terms)], terms, npm1, &shftfn[get1Dfrom3D(lev-1-1, 0, 0, n-2, terms, terms)], phils);
             mpp(phr, terms, npm1, &shftfp[get1Dfrom3D(lev-1-1, 0, 0, n-2, terms, terms)], phirs);
 
             for(int sc=1; sc<=npm1; sc++) {
@@ -504,7 +504,7 @@ void mftint(double complex* qr, int lq, int p, int myid, int s, int terms, int n
         }
 
         else if(myid % intrvl == intvlo) {
-            MPI_Send(&phi[get1Dfrom3D(obase + 1 - 1 , 0, 0, 2*t + log2np - 3, p-1, terms)], pnpm1, MPI_DOUBLE_COMPLEX, prevd[get1Dfrom2D(lev+1-1, 0, p, 3)], lev, MPI_COMM_WORLD);
+            MPI_Send(&phi[get1Dfrom3D(obase + 1 - 1 , 0, 0, 2*t + log2np - 3, p-1, terms)], pnpm1, MPI_C_DOUBLE_COMPLEX, prevd[get1Dfrom2D(lev+1-1, 0, p, 3)], lev, MPI_COMM_WORLD);
         }
     }
 
@@ -561,13 +561,13 @@ void mftint(double complex* qr, int lq, int p, int myid, int s, int terms, int n
 
     /* Data transfer */
     tag++;
-    MPI_Sendrecv(packps, lpkp, MPI_DOUBLE_COMPLEX, previd, tag, packnr, lpkp, MPI_DOUBLE_COMPLEX, nextid, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    MPI_Sendrecv(packps, lpkp, MPI_C_DOUBLE_COMPLEX, previd, tag, packnr, lpkp, MPI_C_DOUBLE_COMPLEX, nextid, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     tag++;
-    MPI_Sendrecv(packns, lpkn, MPI_DOUBLE_COMPLEX, nextid, tag, packpr, lpkn, MPI_DOUBLE_COMPLEX, previd, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    MPI_Sendrecv(packns, lpkn, MPI_C_DOUBLE_COMPLEX, nextid, tag, packpr, lpkn, MPI_C_DOUBLE_COMPLEX, previd, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
     if(t==1) {
         tag++;
-        MPI_Sendrecv(packnn, p/2, MPI_DOUBLE_COMPLEX, nextd[get1Dfrom2D(log2np, 1, p, 3)], tag, qcpp, p/2, MPI_DOUBLE_COMPLEX, prevd[get1Dfrom2D(log2np, 1, p, 3)], tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        MPI_Sendrecv(packnn, p/2, MPI_C_DOUBLE_COMPLEX, nextd[get1Dfrom2D(log2np-1, 1, p, 3)], tag, qcpp, p/2, MPI_C_DOUBLE_COMPLEX, prevd[get1Dfrom2D(log2np-1, 1, p, 3)], tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     }
 
     /* Unpack:  packnr -> phin, qrn
@@ -620,7 +620,7 @@ void mftint(double complex* qr, int lq, int p, int myid, int s, int terms, int n
         nl = 2;
         for(int box=1; box<=2; box++) {
             tag++;
-            MPI_Sendrecv(&phi[get1Dfrom3D(box-1, 0, 0, 2*t + log2np - 3, p-1, terms)], pnpm1, MPI_DOUBLE_COMPLEX, nextid, tag, phiopp, pnpm1, MPI_DOUBLE_COMPLEX, previd, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            MPI_Sendrecv(&phi[get1Dfrom3D(box-1, 0, 0, 2*t + log2np - 3, p-1, terms)], pnpm1, MPI_C_DOUBLE_COMPLEX, nextid, tag, phiopp, pnpm1, MPI_C_DOUBLE_COMPLEX, previd, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
             mpp(phiopp, terms, npm1, topflp, &psi[get1Dfrom3D(box-1, 0, 0, 2*t + log2np - 3, p-1, terms)]);
         }
     }
@@ -629,7 +629,7 @@ void mftint(double complex* qr, int lq, int p, int myid, int s, int terms, int n
         nl = 1;
         intrvl = p/4;
         if(myid % intrvl == 0) {
-            MPI_Sendrecv(&phi[get1Dfrom3D(0, 0, 0, 2*t + log2np - 3, p-1, terms)], pnpm1, MPI_DOUBLE_COMPLEX, nextd[get1Dfrom2D(0, 0, p, 3)], tag, phiopp, pnpm1, MPI_DOUBLE_COMPLEX, prevd[get1Dfrom2D(0, 0, p, 3)], tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            MPI_Sendrecv(&phi[get1Dfrom3D(0, 0, 0, 2*t + log2np - 3, p-1, terms)], pnpm1, MPI_C_DOUBLE_COMPLEX, nextd[get1Dfrom2D(0, 0, p, 3)], tag, phiopp, pnpm1, MPI_C_DOUBLE_COMPLEX, prevd[get1Dfrom2D(0, 0, p, 3)], tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         }
     }
 
@@ -644,10 +644,10 @@ void mftint(double complex* qr, int lq, int p, int myid, int s, int terms, int n
         tag+=10;
 
         if(myid%intvlo == 0) {
-            MPI_Send(&psi[get1Dfrom3D(obase+1-1, 0, 0, 2*t + log2np - 3, p-1, terms)], pnpm1, MPI_DOUBLE_COMPLEX, nextd[get1Dfrom2D(lev-1, 0, p, 3)], tag+1, MPI_COMM_WORLD);
-            MPI_Sendrecv(&phi[get1Dfrom3D(base+1-1, 0, 0, 2*t + log2np - 3, p-1, terms)], pnpm1, MPI_DOUBLE_COMPLEX, nextd[get1Dfrom2D(lev-1, 1, p, 3)], tag+2, phim2, pnpm1, MPI_DOUBLE_COMPLEX, prevd[get1Dfrom2D(lev-1, 1, p, 3)], tag+2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            MPI_Sendrecv(&phi[get1Dfrom3D(base+1-1, 0, 0, 2*t + log2np - 3, p-1, terms)], pnpm1, MPI_DOUBLE_COMPLEX, prevd[get1Dfrom2D(lev-1, 1, p, 3)], tag+3, phip2, pnpm1, MPI_DOUBLE_COMPLEX, nextd[get1Dfrom2D(lev-1, 1, p, 3)], tag+3, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            MPI_Sendrecv(&phi[get1Dfrom3D(base+1-1, 0, 0, 2*t + log2np - 3, p-1, terms)], pnpm1, MPI_DOUBLE_COMPLEX, nextd[get1Dfrom2D(lev-1, 2, p, 3)], tag+5, phip3, pnpm1, MPI_DOUBLE_COMPLEX, nextd[get1Dfrom2D(lev-1, 2, p, 3)], tag+4, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            MPI_Send(&psi[get1Dfrom3D(obase+1-1, 0, 0, 2*t + log2np - 3, p-1, terms)], pnpm1, MPI_C_DOUBLE_COMPLEX, nextd[get1Dfrom2D(lev-1, 0, p, 3)], tag+1, MPI_COMM_WORLD);
+            MPI_Sendrecv(&phi[get1Dfrom3D(base+1-1, 0, 0, 2*t + log2np - 3, p-1, terms)], pnpm1, MPI_C_DOUBLE_COMPLEX, nextd[get1Dfrom2D(lev-1, 1, p, 3)], tag+2, phim2, pnpm1, MPI_C_DOUBLE_COMPLEX, prevd[get1Dfrom2D(lev-1, 1, p, 3)], tag+2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            MPI_Sendrecv(&phi[get1Dfrom3D(base+1-1, 0, 0, 2*t + log2np - 3, p-1, terms)], pnpm1, MPI_C_DOUBLE_COMPLEX, prevd[get1Dfrom2D(lev-1, 1, p, 3)], tag+3, phip2, pnpm1, MPI_C_DOUBLE_COMPLEX, nextd[get1Dfrom2D(lev-1, 1, p, 3)], tag+3, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            MPI_Sendrecv(&phi[get1Dfrom3D(base+1-1, 0, 0, 2*t + log2np - 3, p-1, terms)], pnpm1, MPI_C_DOUBLE_COMPLEX, nextd[get1Dfrom2D(lev-1, 2, p, 3)], tag+5, phip3, pnpm1, MPI_C_DOUBLE_COMPLEX, nextd[get1Dfrom2D(lev-1, 2, p, 3)], tag+4, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
             mpp(&psi[get1Dfrom3D(obase+1-1, 0, 0, 2*t + log2np - 3, p-1, terms)], terms, npm1, &shftlp[get1Dfrom3D(lev-3, 0, 0, n-2, terms, terms)], shpsi);
             mpp(phim2, terms, npm1, &flip2p[get1Dfrom3D(lev-3, 0, 0, n-2, terms, terms)], f2p);
@@ -661,10 +661,10 @@ void mftint(double complex* qr, int lq, int p, int myid, int s, int terms, int n
             }
         }
         else if(myid%intvlo == intrvl) {
-            MPI_Sendrecv(&phi[get1Dfrom3D(base+1-1, 0, 0, 2*t + log2np - 3, p-1, terms)], pnpm1, MPI_DOUBLE_COMPLEX, prevd[get1Dfrom2D(lev-1, 2, p, 3)], tag+4, psiprv, pnpm1, MPI_DOUBLE_COMPLEX, prevd[get1Dfrom2D(lev-1, 0, p, 3)], tag+1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            MPI_Recv(phim3, pnpm1, MPI_DOUBLE_COMPLEX, prevd[get1Dfrom2D(lev-1, 2, p, 3)], tag+5, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            MPI_Sendrecv(&phi[get1Dfrom3D(base+1-1, 0, 0, 2*t + log2np - 3, p-1, terms)], pnpm1, MPI_DOUBLE_COMPLEX, nextd[get1Dfrom2D(lev-1, 1, p, 3)], tag+6, phim2, pnpm1, MPI_DOUBLE_COMPLEX, prevd[get1Dfrom2D(lev-1, 1, p, 3)], tag+6, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            MPI_Sendrecv(&phi[get1Dfrom3D(base+1-1, 0, 0, 2*t + log2np - 3, p-1, terms)], pnpm1, MPI_DOUBLE_COMPLEX, prevd[get1Dfrom2D(lev-1, 1, p, 3)], tag+7, phip2, pnpm1, MPI_DOUBLE_COMPLEX, nextd[get1Dfrom2D(lev-1, 1, p, 3)], tag+7, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            MPI_Sendrecv(&phi[get1Dfrom3D(base+1-1, 0, 0, 2*t + log2np - 3, p-1, terms)], pnpm1, MPI_C_DOUBLE_COMPLEX, prevd[get1Dfrom2D(lev-1, 2, p, 3)], tag+4, psiprv, pnpm1, MPI_C_DOUBLE_COMPLEX, prevd[get1Dfrom2D(lev-1, 0, p, 3)], tag+1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            MPI_Recv(phim3, pnpm1, MPI_C_DOUBLE_COMPLEX, prevd[get1Dfrom2D(lev-1, 2, p, 3)], tag+5, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            MPI_Sendrecv(&phi[get1Dfrom3D(base+1-1, 0, 0, 2*t + log2np - 3, p-1, terms)], pnpm1, MPI_C_DOUBLE_COMPLEX, nextd[get1Dfrom2D(lev-1, 1, p, 3)], tag+6, phim2, pnpm1, MPI_C_DOUBLE_COMPLEX, prevd[get1Dfrom2D(lev-1, 1, p, 3)], tag+6, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            MPI_Sendrecv(&phi[get1Dfrom3D(base+1-1, 0, 0, 2*t + log2np - 3, p-1, terms)], pnpm1, MPI_C_DOUBLE_COMPLEX, prevd[get1Dfrom2D(lev-1, 1, p, 3)], tag+7, phip2, pnpm1, MPI_C_DOUBLE_COMPLEX, nextd[get1Dfrom2D(lev-1, 1, p, 3)], tag+7, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
             mpp(psiprv, terms, npm1, &shftln[get1Dfrom3D(lev-3, 0, 0, n-2, terms, terms)], shpsi);
             mpp(phim2, terms, npm1, &flip2p[get1Dfrom3D(lev-3, 0, 0, n-2, terms, terms)], f2p);
@@ -752,8 +752,8 @@ void mftint(double complex* qr, int lq, int p, int myid, int s, int terms, int n
 
     tag+=10;
 
-    MPI_Send(exts, p/2, MPI_DOUBLE_COMPLEX, nextid, tag, MPI_COMM_WORLD);
-    MPI_Recv(extr, p/2, MPI_DOUBLE_COMPLEX, previd, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    MPI_Send(exts, p/2, MPI_C_DOUBLE_COMPLEX, nextid, tag, MPI_COMM_WORLD);
+    MPI_Recv(extr, p/2, MPI_C_DOUBLE_COMPLEX, previd, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
     for(int sc=1; sc<=p/2 -1; sc++) {
         for(int j=1; j<=b; j++) {
@@ -786,8 +786,10 @@ void mftint(double complex* qr, int lq, int p, int myid, int s, int terms, int n
         sce = sc - p/2 + 1;
         j=1;
         box = 1;
-        psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] = dotp(terms, &psi[get1Dfrom3D(base+box-2, sc-1, 0, 2*t + log2np - 3, p-1, terms)], &evalmh[get1Dfrom2D(sce-1, 0, p/2, terms)]);
-
+        psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] = extr[sce-1];
+        for(box=2; box<=t; box++) {
+            psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] = dotp(terms, &psi[get1Dfrom3D(base+box-2, sc-1, 0, 2*t + log2np - 3, p-1, terms)], &evalmh[get1Dfrom2D(sce-1, 0, p/2, terms)]);
+        }
         for(j=2; j<=b; j++) {
             for(box = 1; box<=t; box++) {
                 psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] = dotp(terms, &psi[get1Dfrom3D(base+box-1, sc-1, 0, 2*t + log2np - 3, p-1, terms)], &evalm[get1Dfrom3D(j-1, sc-1, 0, b, p-1, terms)]);
@@ -820,6 +822,9 @@ void mftint(double complex* qr, int lq, int p, int myid, int s, int terms, int n
             else {
                 box=1;
                 psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += mn3(b, &qrp[get1Dfrom2D(sc-1, 0, p-1, b)], &qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], &qr[get1Dfrom3D(box+1-1, sc+1-1, 0, t, p, b)], &cots[get1Dfrom3D(sc-1,j-2,0,p-1, b-1, 3*b)]);
+                for(box=2; box<=t-1; box++) {
+                   psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += mn3(b, &qr[get1Dfrom3D(box-2, sc+1-1, 0, t, p, b)], &qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], &qr[get1Dfrom3D(box+1-1, sc+1-1, 0, t, p, b)], &cots[get1Dfrom3D(sc-1,j-2,0,p-1, b-1, 3*b)]); 
+                }
                 box = t;
                 psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += mn3(b, &qr[get1Dfrom3D(box-2, sc+1-1, 0, t, p, b)], &qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], &qrn[get1Dfrom2D(sc-1,0,p, b)], &cots[get1Dfrom3D(sc-1,j-2,0,p-1, b-1, 3*b)]);
             }
@@ -944,20 +949,20 @@ void mftint(double complex* qr, int lq, int p, int myid, int s, int terms, int n
     }
 
     for(int box=1; box<=t; box++) {
-        for(int px=1; pk<=b; pk++) {
+        for(int pk=1; pk<=b; pk++) {
             for(int j=1; j<=npm1; j++) {
                 psit[j-1] = psiev[get1Dfrom3D(j-1, box-1, pk-1, p, t, b)];
             }
             for(int j=1; j<=p; j++) {
-                psiev[get1Dfrom3D(j-1, box-1, pk-1, p, t, b)] = qr[get1Dfrom3D(pk-1, 0, box-1, t, p, b)];
+                psiev[get1Dfrom3D(j-1, box-1, pk-1, p, t, b)] = qr[get1Dfrom3D(box-1, 0, pk-1, t, p, b)];
                 for(int sc=1; sc<=npm1; sc++) {
-                    psiev[get1Dfrom3D(j-1, box-1, pk-1, p, t, b)] += fo[get1Dfrom2D(sc-1, j-1, p, p-1)] * (psit[sc-1] - sumsec[sc-1]);
+                    psiev[get1Dfrom3D(j-1, box-1, pk-1, p, t, b)] += fo[get1Dfrom2D(j-1, sc-1, p, p-1)] * (psit[sc-1] - sumsec[sc-1]);
                 }
             }
         }
     }
 
-    MPI_Alltoall(psiev, t*b, MPI_DOUBLE_COMPLEX, qr, t*b, MPI_DOUBLE_COMPLEX, MPI_COMM_WORLD);
+    MPI_Alltoall(psiev, t*b, MPI_C_DOUBLE_COMPLEX, qr, t*b, MPI_C_DOUBLE_COMPLEX, MPI_COMM_WORLD);
 
     MPI_Barrier(MPI_COMM_WORLD);
 
@@ -1107,7 +1112,7 @@ int main(int argc, char* argv[]) {
             for(int i=0; i<local_length; i++) {
                 x[i] = (fftw_complex)proc;
             }
-            MPI_Send(x, local_length, MPI_DOUBLE_COMPLEX, proc, 0, MPI_COMM_WORLD);
+            MPI_Send(x, local_length, MPI_C_DOUBLE_COMPLEX, proc, 0, MPI_COMM_WORLD);
         }
 
         // assign local data of id 0
@@ -1118,7 +1123,7 @@ int main(int argc, char* argv[]) {
 
     else {
         // receive
-        MPI_Recv(x, local_length, MPI_DOUBLE_COMPLEX, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        MPI_Recv(x, local_length, MPI_C_DOUBLE_COMPLEX, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     }
 
     /************Test MPI *****************/
@@ -1159,8 +1164,9 @@ int main(int argc, char* argv[]) {
         printf("SUCCESS");
 
     // free resources
-    fftw_free(x);
+    MPI_Barrier(MPI_COMM_WORLD);
     fftw_destroy_plan(forward_plan);
+    fftw_free(x);
     free(w);
     free(v);
     MPI_Finalize();
