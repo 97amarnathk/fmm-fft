@@ -74,9 +74,16 @@ void vx(double a, double* x, double* mat, int terms, double* chnods, double* mm,
     double ac = 3 * tan(a);
 
     for(int j=1; j<=terms; j++) {
-        double th = -1 * cos((2*j-2)/(2 * (terms-1)) * PI) * (2*a);
+        double th = -1 * cos(((double)2*j-2)/(2 * (terms-1)) * PI) * (2*a);
         acu[j-1] = ac / tan(0.5 * th);
     }
+
+    /* int myid;
+    MPI_Comm_rank(MPI_COMM_WORLD, &myid);
+    if(myid==0)
+    for(int i=0; i<terms; i++) {
+        printf("acu %d [%lf]\n", i, acu[i]);
+    } */
 
     for(int k=1; k<=terms; k++) {
         mm[k-1] = chnods[k-1] - acu[k-1];
@@ -267,6 +274,7 @@ void mftii(int lq, int p, int s, int terms, int b, int n, int szkeep, int sztemp
         }
 
         initg(b, s, initch, terms, wknie, chnods);
+
         flip(2, 2, topflp, terms, chnods, wkp, wkp2, wkp3);
 
         for(int lev=1; lev<=n-2; lev++) {
@@ -320,6 +328,13 @@ void mftii(int lq, int p, int s, int terms, int b, int n, int szkeep, int sztemp
                 fo[get1Dfrom2D(sc-1, j-1, p, p-1)] = -cexp(temp)*sin(ang);
             }
         }
+
+        /* int myid;
+        MPI_Comm_rank(MPI_COMM_WORLD, &myid);
+        if(myid==0)
+        for(int i=0; i<2; i++) {
+            printf("fo %lf %lf\n", creal(fo[i]), cimag(fo[i]));
+        } */
 }
 
 /*
@@ -377,7 +392,7 @@ void mfti(int lq, int p, int t, int b, double *wkkeep, double *wktemp, int szkee
 
     if(myid==0) {
         for(int i=0; i<21; i++) {
-            printf("[%d]\n", ia[i]+641);
+            printf("[%d]\n", ia[i] + 641);
         }
     } */
 }
@@ -463,7 +478,13 @@ void mftint(double complex* qr, int lq, int p, int myid, int s, int terms, int n
     /* Step 1 : Lowest level */
 
     int base = t + log2np - 3;
-    initmm(qr, p, b, t, initch, phi, terms);
+    initmm(qr, p, b, t, initch, &phi[get1Dfrom3D(base, 0, 0, 2*t + log2np-3, p-1, terms)], terms);
+
+    /* if(myid==0) {
+        for(int i=0; i<(terms*(p-1)*(2*t + log2np-3)); i++) {
+            printf("phi %d [%lf] [%lf]\n", i, creal(phi[i]), cimag(phi[i]));
+        }
+    } */
 
     /* Step 2 : Up the tree */
 
@@ -483,13 +504,13 @@ void mftint(double complex* qr, int lq, int p, int myid, int s, int terms, int n
             mpp(&phi[get1Dfrom3D(obase + 2*box - 1, 0, 0, 2*t + log2np - 3, p-1, terms)], terms, npm1, &shftfp[get1Dfrom3D(lev-1-1, 0, 0, n-2, terms, terms)], phirs);
             
             for(int sc = 1; sc<=npm1;  sc++) {
-                for(int term = 1; term<=p; term++) {
+                for(int term = 1; term<=terms; term++) {
                     phi[get1Dfrom3D(base + box - 1, sc-1, term-1, 2*t + log2np - 3, p-1, terms)] = phils[get1Dfrom2D(sc-1, term-1, p-1, terms)] + phirs[get1Dfrom2D(sc-1, term-1, p-1, terms)];
                 }
             }
         }
     }
-
+    
     //At higher levels, communication is required
     for(int lev = log2np - 1; lev>=2; lev--) {
         int obase = base;
@@ -588,7 +609,7 @@ void mftint(double complex* qr, int lq, int p, int myid, int s, int terms, int n
         base = nl + log2np - 3;
 
         for(int sc=1; sc<=npm1; sc++) {
-            for(int term=1; term<=p; term++) {
+            for(int term=1; term<=terms; term++) {
                 pk++;
                 phin[get1Dfrom4D( lr-1, 0, sc-1, term-1, n, 2, p-1, terms)] = packnr[pk-1];
                 phip[get1Dfrom4D( lr-1, 0, sc-1, term-1, n, 2, p-1, terms)] = packpr[pk-1];
@@ -601,12 +622,11 @@ void mftint(double complex* qr, int lq, int p, int myid, int s, int terms, int n
     }
 
     /* Now pk .eq. (n - lup) * npm1 * 2 * p */
-
     for(int sc=1; sc<=npm1; sc++) {
         for(int j=1; j<=b; j++) {
             pk++;
             qrn[get1Dfrom2D(sc-1, j-1, p, b)] = packnr[pk-1];
-            qrp[get1Dfrom2D(sc-1, j-1, p, b)] = packpr[pk-1];
+            qrp[get1Dfrom2D(sc-1, j-1, p-1, b)] = packpr[pk-1];
         }
     }
 
@@ -636,6 +656,7 @@ void mftint(double complex* qr, int lq, int p, int myid, int s, int terms, int n
         intrvl = p/4;
         if(myid % intrvl == 0) {
             MPI_Sendrecv(&phi[get1Dfrom3D(0, 0, 0, 2*t + log2np - 3, p-1, terms)], pnpm1, MPI_C_DOUBLE_COMPLEX, nextd[get1Dfrom2D(0, 0, p, 3)], tag, phiopp, pnpm1, MPI_C_DOUBLE_COMPLEX, prevd[get1Dfrom2D(0, 0, p, 3)], tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            mpp(phiopp, terms, npm1, topflp, &psi[get1Dfrom3D(0, 0, 0, 2*t + log2np - 3, p-1, terms)]);
         }
     }
 
@@ -696,7 +717,7 @@ void mftint(double complex* qr, int lq, int p, int myid, int s, int terms, int n
         lr++;
         for(int box=1; box<=oldnl; box++) {
             /* Left child */
-            int cl = base + 2*box - 1;
+            int cl = base + 2*box - 1;  
             mpp(&psi[get1Dfrom3D(obase+box-1, 0, 0, 2*t + log2np - 3, p-1, terms)], terms, npm1, &shftlp[get1Dfrom3D(lev-3, 0, 0, n-2, terms, terms)], shpsi);
 
             if(box==1) {
@@ -746,6 +767,14 @@ void mftint(double complex* qr, int lq, int p, int myid, int s, int terms, int n
                     psi[get1Dfrom3D(cr-1, sc-1, term-1, 2*t + log2np - 3, p-1, terms)] = shpsi[get1Dfrom2D(sc-1, term-1, p-1, terms)] + f2p[get1Dfrom2D(sc-1, term-1, p-1, terms)] + f2n[get1Dfrom2D(sc-1, term-1, p-1, terms)] + f3[get1Dfrom2D(sc-1, term-1, p-1, terms)];
                 }
             }
+            
+            <LOOK HERE CHECK f2n>
+            if(myid==0) {
+            for(int i=0; i<terms*(p-1); i++) {
+                printf("phi %d [%lf] [%lf]\n", i, creal(f2n[i]), cimag(f2n[i]));
+                }
+            }
+
         }
     }
 
@@ -779,6 +808,9 @@ void mftint(double complex* qr, int lq, int p, int myid, int s, int terms, int n
     for(box = 2; box<=t; box++) {
         psit1 = dotp(terms, &psi[get1Dfrom3D(base+box-1, sc-1, 0, 2*t + log2np - 3, p-1, terms)], &evalm[get1Dfrom3D(j-1, sc-1, 0, b, p-1, terms)]);
         psit2 = dotp(terms, &psi[get1Dfrom3D(base+box-2, sc-1, 0, 2*t + log2np - 3, p-1, terms)], &evalmh[get1Dfrom2D(sce-1, 0, p/2, terms)]);
+        if(myid==0) {
+            //printf("PSIT1 [%lf][%lf] PSIT2 [%lf][%lf]\n", creal(psit1), cimag(psit1), creal(psit2), cimag(psit2));
+        }
         psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] = 0.5 * (psit1 + psit2);
     }
 
@@ -1097,7 +1129,7 @@ void display(fftw_complex* x, fftw_complex* y, int len) {
         /* term wise error */
         double err = cabs(x[i]-y[i])/cabs(y[i]) * 100;
 
-        printf("(%.1f, %.1f) ---- (%.1f, %.1f) \t\t %.2f\%\n", 
+        printf("(%.1f, %.1f) ---- (%.1f, %.1f) \t\t %lf\n", 
             creal(x[i]), cimag(x[i]), 
             creal(y[i]), cimag(y[i]), 
             err
