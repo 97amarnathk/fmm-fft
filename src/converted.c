@@ -6,7 +6,7 @@
 
 #include <fftw3.h>
 
-#define M_PI 3.14159265358979323846264338327950288
+double PI  = 3.14159265358979323846264338327950288;
 
 /* 
 Returns 1D index given the 2D indices and array dimensions
@@ -74,7 +74,7 @@ void vx(double a, double* x, double* mat, int terms, double* chnods, double* mm,
     double ac = 3 * tan(a);
 
     for(int j=1; j<=terms; j++) {
-        double th = -1 * cos((2*j-2)/(2 * (terms-1)) * M_PI) * (2*a);
+        double th = -1 * cos((2*j-2)/(2 * (terms-1)) * PI) * (2*a);
         acu[j-1] = ac / tan(0.5 * th);
     }
 
@@ -109,9 +109,9 @@ void wx(double a, double* x, int xlen, double* mat, int terms, double* chnods, d
     double ac = 1/tan(a);
 
     for(int j=1; j<=terms; j++) {
-        double th = -cos( ((double)(2*j - 2)) / (2*(terms-1)) * M_PI ) * (M_PI - 6*a) + M_PI;
+        double th = -cos( ((double)(2*j - 2)) / (2*(terms-1)) * PI ) * (PI - 6*a) + PI;
         acu[j-1] = ac * tan(0.5 * th);
-        chnods[j-1] = -cos(((double)2*j -1) / (2*terms) * M_PI);
+        chnods[j-1] = -cos(((double)2*j -1) / (2*terms) * PI);
     }
 
     for(int j=1; j<=terms; j++) {
@@ -139,7 +139,7 @@ void wx(double a, double* x, int xlen, double* mat, int terms, double* chnods, d
 
 void shftf(int lev, int dir, double* mat, int terms, double* chnods, double* x, double* wkp, double* mm) {
     double dd = (double) dir;
-    double a = M_PI/pow(2, lev);
+    double a = PI/pow(2, lev);
     double ta3 = 3 * tan(a);
     double td2 = tan(0.5 * a);
 
@@ -151,7 +151,7 @@ void shftf(int lev, int dir, double* mat, int terms, double* chnods, double* x, 
 }
 
 void evlmf(double ffr, int s, int lq, double* vec, int terms, double* w, double* chnods, double* acu) {
-    double a = (M_PI / s) * 0.5;
+    double a = (PI / s) * 0.5;
     double th = ffr * a;
     double x = tan(th)/tan(a);
     wx(a, &x, 1, w, terms, chnods, acu);
@@ -177,7 +177,7 @@ void mpp(double complex* vecs, int terms, int len, double* matpp, double complex
 
 void shftl(int lev, int dir, double* mat, int terms, double* chnods, double* x, double* acu) {
     double dd = (double)dir;
-    double a = M_PI/pow(2, lev);
+    double a = PI/pow(2, lev);
     double c = tan(0.25 * a);
     double td2 = tan(0.5 * a);
 
@@ -217,7 +217,7 @@ double complex mn3(int n, double complex* x, double complex* y, double complex* 
 }
 
 void flip(int lev, int shft, double* mat, int terms, double* chnods, double* x, double* wkp, double* mm) {
-    double a = M_PI/(pow(2, lev));
+    double a = PI/(pow(2, lev));
     double b = shft;
     double c = tan(0.5 * a);
     double td2 = tan(b * a);
@@ -232,7 +232,7 @@ void flip(int lev, int shft, double* mat, int terms, double* chnods, double* x, 
 }
 
 void initg(int b, int s, double* initch, int terms, double* tang, double* chnods) {
-    double a = M_PI / (2.0 * s);
+    double a = PI / (2.0 * s);
 
     for(int j=1; j<=b; j++) {
         double th = ((double)(2*j - b - 1))/(double)b * a;
@@ -263,7 +263,7 @@ void mftii(int lq, int p, int s, int terms, int b, int n, int szkeep, int sztemp
         n = my_log2(s);
 
         for(int j=1; j<=terms; j++) {
-            chnods[j-1] = cos(((double)2*j-1)/(2*terms) * M_PI);
+            chnods[j-1] = -1*cos(((double)2*j-1)/(2*terms) * PI);
         }
 
         initg(b, s, initch, terms, wknie, chnods);
@@ -294,19 +294,19 @@ void mftii(int lq, int p, int s, int terms, int b, int n, int szkeep, int sztemp
                 evlmf(ffr, s, lq, &evalmh[get1Dfrom2D(sce-1, 0, p/2, terms)], terms, wkp, chnods, wkp2);
 
                 for(int j= 1-b; j<=2*b; j++) {
-                    cotsh[get1Dfrom2D(sce-1, j+b-1, p/2, 3*b)] = -1 / tan(M_PI/dlq * (j - 1 - b + gfrac)) / dlq;
+                    cotsh[get1Dfrom2D(sce-1, j+b-1, p/2, 3*b)] = -1 / tan(PI/dlq * (j - 1 - b + gfrac)) / dlq;
                 }
             }
 
             for(int k=2; k<=b; k++) {
                 for(int j=1-b; j<=2*b; j++) {
-                    cots[get1Dfrom3D(sc-1, k-2, j+b-1, p-1, b-1, 3*b)] = -1 / tan(M_PI/dlq * (j - k + gfrac)) / dlq;
+                    cots[get1Dfrom3D(sc-1, k-2, j+b-1, p-1, b-1, 3*b)] = -1 / tan(PI/dlq * (j - k + gfrac)) / dlq;
                 }
             }
 
             if(sc <= p/2) {
                 for(int j=1-b; j<=2*b; j++) {
-                    cotprv[get1Dfrom2D(sc-1, j + b -1, p/2, 3*b)] = -1 / tan(M_PI/dlq * (j - 1 + gfrac)) / dlq;
+                    cotprv[get1Dfrom2D(sc-1, j + b -1, p/2, 3*b)] = -1 / tan(PI/dlq * (j - 1 + gfrac)) / dlq;
                 }
             }
         }
@@ -314,7 +314,7 @@ void mftii(int lq, int p, int s, int terms, int b, int n, int szkeep, int sztemp
         //myffti();
 
         for(int sc = 1; sc<=p-1; sc++) {
-            double ang = M_PI * ((double)sc) / p;
+            double ang = PI * ((double)sc) / p;
             for(int j=1; j<=p; j++) {
                 double complex temp = (ang * (1 - 2*j))*I;
                 fo[get1Dfrom2D(sc-1, j-1, p, p-1)] = -cexp(temp)*sin(ang);
@@ -364,9 +364,6 @@ void mfti(int lq, int p, int t, int b, double *wkkeep, double *wktemp, int szkee
         ind+=t;
     }
 
-    /* Possible malloc on wkkeep required here */
-    /*                                         */
-
     mftii(lq, p, s, t, b, n, szkeep, sztemp,
         &wkkeep[ia[0]], &wkkeep[ia[1]], &wkkeep[ia[2]], &wkkeep[ia[3]], &wkkeep[ia[4]],
         &wkkeep[ia[5]], &wkkeep[ia[6]], &wkkeep[ia[7]], &wkkeep[ia[8]], &wkkeep[ia[9]],
@@ -374,6 +371,15 @@ void mfti(int lq, int p, int t, int b, double *wkkeep, double *wktemp, int szkee
         &wkkeep[ia[15]], &wkkeep[ia[16]], &wkkeep[ia[17]], &wkkeep[ia[18]], &wkkeep[ia[19]],
         &wkkeep[ia[20]], wktemp
     );
+
+    /* int myid;
+    MPI_Comm_rank(MPI_COMM_WORLD, &myid);
+
+    if(myid==0) {
+        for(int i=0; i<21; i++) {
+            printf("[%d]\n", ia[i]+641);
+        }
+    } */
 }
 
 void mftint(double complex* qr, int lq, int p, int myid, int s, int terms, int n, int t, int b, int log2np, int sz1, int szwk, int dir,
@@ -1061,6 +1067,15 @@ void mft(int lq, double complex* qr, int dir, int p, int myid, int terms, int b,
         ind += 3 * p;
     }
 
+    /* if(myid==0) {
+        for(int i=0; i<17; i++) {
+            printf("w[%d]\n", ia[i] + 641);
+        }
+        for(int i=17; i<55; i++) {
+            printf("v[%d]\n", ia[i] + 1);
+        }
+    } */
+
     mftint(qr, lq, p, myid, s, terms, n, t, b, log2np, sz1, szwk, dir,
         &w[ia[0]], &w[ia[1]], &w[ia[2]], &w[ia[3]], &w[ia[4]], &w[ia[5]],
         &w[ia[6]], &w[ia[7]], &w[ia[8]], &w[ia[9]], &w[ia[10]], &w[ia[11]], 
@@ -1076,11 +1091,20 @@ void mft(int lq, double complex* qr, int dir, int p, int myid, int terms, int b,
     fftw_execute(forward_plan);
 }
 
+
 void display(fftw_complex* x, fftw_complex* y, int len) {
     for(int i=0; i<len; i++) {
-        printf("(%.1f, %.1f) ---- (%.1f, %.1f)\n", creal(x[i]), cimag(x[i]), creal(y[i]), cimag(y[i]));
+        /* term wise error */
+        double err = cabs(x[i]-y[i])/cabs(y[i]) * 100;
+
+        printf("(%.1f, %.1f) ---- (%.1f, %.1f) \t\t %.2f\%\n", 
+            creal(x[i]), cimag(x[i]), 
+            creal(y[i]), cimag(y[i]), 
+            err
+        );
     }
 }
+
 
 /*
 * N : fft size
@@ -1150,34 +1174,27 @@ int main(int argc, char* argv[]) {
         MPI_Recv(x, local_length, MPI_C_DOUBLE_COMPLEX, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     }
 
-    if(myid==0) {
+    /* if(myid==0) {
+        printf("w_elements: %d \t v_elements: %d\n", w_elements, v_elements);
         printf("### BEFORE ###\n");
         display(x, y, local_length);
-    }
+    } */
 
     /* mfti */
     mfti(local_length, P, T, B, w, v, 0, 0);
 
-    if(myid==0) {
+    /* if(myid==0) {
         printf("### AFTER MFTI ###\n");
         display(x, y, local_length);
-    }
+    } */
 
     /* mft */
     mft(local_length, x, 1, P, myid, T, B, w, v, 0, 0, forward_plan);
     fftw_execute(forward_test_plan);
 
-    if(myid==0) {
+    /* if(myid==0) {
         printf("### ALL DONE ###\n");
         display(x, y, local_length);
-    }
-
-    /* if(myid==0) {
-        printf("### DONE ###\n");
-        fftw_execute(forward_test_plan);
-        for(int i=0; i<local_length; i++) {
-                printf("(%f+i%f) --- (%f+i%f)\n", creal(x[i]), cimag(x[i]), creal(y[i]), cimag(y[i]));
-        }
     } */
 
     /* free resources */
