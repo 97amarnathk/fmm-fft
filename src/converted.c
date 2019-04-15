@@ -1076,15 +1076,21 @@ void mft(int lq, double complex* qr, int dir, int p, int myid, int terms, int b,
     fftw_execute(forward_plan);
 }
 
-int main(int argc, char* argv[]) {
-    /*
-    * N : fft size
-    * P : number of processors
-    * B : number of boxes
-    * T : number of terms
-    */
-    int myid, world_size;
+void display(fftw_complex* x, fftw_complex* y, int len) {
+    for(int i=0; i<len; i++) {
+        printf("(%.1f, %.1f) ---- (%.1f, %.1f)\n", creal(x[i]), cimag(x[i]), creal(y[i]), cimag(y[i]));
+    }
+}
 
+/*
+* N : fft size
+* P : number of processors
+* B : number of boxes
+* T : number of terms
+*/
+int main(int argc, char* argv[]) {
+    int myid, world_size;
+    
     MPI_Init(&argc,&argv);
     MPI_Comm_rank(MPI_COMM_WORLD,&myid);
     MPI_Comm_size(MPI_COMM_WORLD,&world_size);
@@ -1104,69 +1110,82 @@ int main(int argc, char* argv[]) {
     int local_length = N/P;
 
     fftw_complex *x = 0;
+    fftw_complex *y = 0;
     x  = fftw_malloc(sizeof(fftw_complex)*local_length);
+    y  = fftw_malloc(sizeof(fftw_complex)*N);
 
-    if(myid == 0) {
-        // send local data to other processors
-        for(int proc = 1; proc<P; proc++) {
-            for(int i=0; i<local_length; i++) {
-                x[i] = (fftw_complex)proc;
-            }
-            MPI_Send(x, local_length, MPI_C_DOUBLE_COMPLEX, proc, 0, MPI_COMM_WORLD);
-        }
+    fftw_plan forward_plan = fftw_plan_dft(1, &local_length, x, x, FFTW_FORWARD, FFTW_ESTIMATE);
+    fftw_plan forward_test_plan = fftw_plan_dft(1, &N, y, y, FFTW_FORWARD, FFTW_ESTIMATE);
 
-        // assign local data of id 0
-        for(int i=0; i<local_length; i++) {
-            x[i] = 0;
-        }
-    }
-
-    else {
-        // receive
-        MPI_Recv(x, local_length, MPI_C_DOUBLE_COMPLEX, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    }
-
-    /************Test MPI *****************/
-    /*for(int proc=0; proc<P; proc++) {
-        MPI_Barrier(MPI_COMM_WORLD);
-        if(myid == proc) {
-            printf("P %d ", proc);
-            for(int i=0; i<local_length; i++) {
-                printf("(%.1f+i%.1f) ", creal(x[i]), cimag(x[i]));
-            }
-            printf("\n");
-        }
-        MPI_Barrier(MPI_COMM_WORLD);
-    }*/
-    /************End Test *****************/
-
-    //initialise v and w
     int w_elements, v_elements;
     double* w;
     double* v;
-    
     w_elements = 8 * ((int)pow(T, 2)) * my_log2(local_length/B) + (3*B + 2*P)*B*P + 2*P*(P+T);//8*(t**2)*log2(lq/b) + (3*b + 2*p)*b*p + 2*p*(p + t)
     v_elements = 8*T*(P-1)*(local_length/B/P + (1 + 2*T)*my_log2(local_length/B) + my_log2(P) + 2) + 12*P*(B + 3) + 3*T;//8*t*(p-1)*(lq/b/p + (1+2*t)*log2(lq/b) + log2(p) + 2) + 12*p*(b + 3) + 3*t
-    
     w = (double*)malloc(sizeof(double) * w_elements);
     v = (double*)malloc(sizeof(double) * v_elements);
 
-    
-    //mfti
-    fftw_plan forward_plan = fftw_plan_dft(1, &N, x, x, FFTW_FORWARD, FFTW_ESTIMATE);
+    /* initialise signal */
+    if(myid == 0) {
+        /* send */
+        int count = 0;
+        for(int proc = 1; proc<P; proc++) {
+            for(int i=0; i<local_length; i++) {
+                x[i] = (fftw_complex)(proc * local_length + i + 1);
+                count++;
+            }
+            MPI_Send(x, local_length, MPI_C_DOUBLE_COMPLEX, proc, 0, MPI_COMM_WORLD);
+        }
+        /* assign local data of id 0 */
+        for(int i=0; i<local_length; i++) {
+            x[i] = i+1;
+        }
+        /* reference array */
+        for(int i=0; i<N; i++) {
+            y[i] = (fftw_complex)(i+1);
+        }
+    }
+    else {
+        /* receive */
+        MPI_Recv(x, local_length, MPI_C_DOUBLE_COMPLEX, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    }
+
+    if(myid==0) {
+        printf("### BEFORE ###\n");
+        display(x, y, local_length);
+    }
+
+    /* mfti */
     mfti(local_length, P, T, B, w, v, 0, 0);
 
-    //mft
+    if(myid==0) {
+        printf("### AFTER MFTI ###\n");
+        display(x, y, local_length);
+    }
+
+    /* mft */
     mft(local_length, x, 1, P, myid, T, B, w, v, 0, 0, forward_plan);
+    fftw_execute(forward_test_plan);
 
-    //SUCCESS
-    if(myid==0)
-        printf("SUCCESS");
+    if(myid==0) {
+        printf("### ALL DONE ###\n");
+        display(x, y, local_length);
+    }
 
-    // free resources
+    /* if(myid==0) {
+        printf("### DONE ###\n");
+        fftw_execute(forward_test_plan);
+        for(int i=0; i<local_length; i++) {
+                printf("(%f+i%f) --- (%f+i%f)\n", creal(x[i]), cimag(x[i]), creal(y[i]), cimag(y[i]));
+        }
+    } */
+
+    /* free resources */
     MPI_Barrier(MPI_COMM_WORLD);
     fftw_destroy_plan(forward_plan);
+    fftw_destroy_plan(forward_test_plan);
     fftw_free(x);
+    fftw_free(y);
     free(w);
     free(v);
     MPI_Finalize();
