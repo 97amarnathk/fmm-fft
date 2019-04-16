@@ -325,16 +325,9 @@ void mftii(int lq, int p, int s, int terms, int b, int n, int szkeep, int sztemp
             double ang = PI * ((double)sc) / p;
             for(int j=1; j<=p; j++) {
                 double complex temp = (ang * (1 - 2*j))*I;
-                fo[get1Dfrom2D(sc-1, j-1, p, p-1)] = -cexp(temp)*sin(ang);
+                fo[get1Dfrom2D(j-1, sc-1, p, p-1)] = -cexp(temp)*sin(ang);
             }
         }
-
-        /* int myid;
-        MPI_Comm_rank(MPI_COMM_WORLD, &myid);
-        if(myid==0)
-        for(int i=0; i<2; i++) {
-            printf("fo %lf %lf\n", creal(fo[i]), cimag(fo[i]));
-        } */
 }
 
 /*
@@ -631,7 +624,7 @@ void mftint(double complex* qr, int lq, int p, int myid, int s, int terms, int n
     }
 
     /* Now pk .eq. (n - lup)*npm1*2*p + nieach*npm1 */
-    if(t>=1) {
+    if(t>1) {
         for(int sc=1; sc<=p/2; sc++) {
             pk++;
             qcpp[sc-1] = packpr[pk-1];
@@ -759,7 +752,7 @@ void mftint(double complex* qr, int lq, int p, int myid, int s, int terms, int n
                 mpp(&phin[get1Dfrom4D( lr-1, 1, 0, 0, n, 2, p-1, terms)], terms, npm1, &flip2n[get1Dfrom3D(lev-3, 0, 0, n-2, terms, terms)], f2n);
             }
             else {
-                mpp(&phi[get1Dfrom3D(cl+1, 0, 0, 2*t + log2np - 3, p-1, terms)], terms, npm1, &flip2n[get1Dfrom3D(lev-3, 0, 0, n-2, terms, terms)], f2n);
+                mpp(&phi[get1Dfrom3D(cr+1, 0, 0, 2*t + log2np - 3, p-1, terms)], terms, npm1, &flip2n[get1Dfrom3D(lev-3, 0, 0, n-2, terms, terms)], f2n);
             }
 
             for(int sc=1; sc<=npm1; sc++) {
@@ -767,16 +760,9 @@ void mftint(double complex* qr, int lq, int p, int myid, int s, int terms, int n
                     psi[get1Dfrom3D(cr-1, sc-1, term-1, 2*t + log2np - 3, p-1, terms)] = shpsi[get1Dfrom2D(sc-1, term-1, p-1, terms)] + f2p[get1Dfrom2D(sc-1, term-1, p-1, terms)] + f2n[get1Dfrom2D(sc-1, term-1, p-1, terms)] + f3[get1Dfrom2D(sc-1, term-1, p-1, terms)];
                 }
             }
-            
-            <LOOK HERE CHECK f2n>
-            if(myid==0) {
-            for(int i=0; i<terms*(p-1); i++) {
-                printf("phi %d [%lf] [%lf]\n", i, creal(f2n[i]), cimag(f2n[i]));
-                }
-            }
-
         }
     }
+
 
     /* Step 5:  Evaluate local expansions. */
     
@@ -878,6 +864,10 @@ void mftint(double complex* qr, int lq, int p, int myid, int s, int terms, int n
         psid2 = dotp(b, &qrp[get1Dfrom2D(sc-1, 0, p-1, b)], &cotsh[get1Dfrom2D(sce-1, 1+b-1, p/2, 3*b)]);
         psid3 = dotp(b, &qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], &cotsh[get1Dfrom2D(sce-1, 1+2*b-1, p/2, 3*b)]);
         psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += (psid1 + qcpp[sce-1] + psid2 + psid3) * 0.5;
+        /* if(myid==0) {
+            for(int i=0; i<b*t*p; i++)
+                printf("phi %d [%lf] [%lf]\n", i,creal(psiev[i]), cimag(qcpp[i]));
+                } */
     }
     else if(t==2) {
         box=1;
@@ -892,11 +882,22 @@ void mftint(double complex* qr, int lq, int p, int myid, int s, int terms, int n
         psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += (psid1 + psid2) * 0.5;
     }
     else {
+        //<LOOK HERE>
         box = 1;
         psid1 = mn3(b, &qrp[get1Dfrom2D(sc-1, 0, p-1, b)], &qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], &qr[get1Dfrom3D(box+1-1, sc+1-1, 0, t, p, b)], &cotprv[get1Dfrom2D(sc-1, 0, p/2, 3*b)]);
         psid2 = dotp(b, &qrp[get1Dfrom2D(sc-1, 0, p-1, b)], &cotsh[get1Dfrom2D(sce-1, 1+b-1, p/2, 3*b)]);
         psid3 = dotp(b,&qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], &cotsh[get1Dfrom2D(sce-1, 1+2*b-1, p/2, 3*b)]);
-        psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += (psid1 + qcpp[sce-1] + psid2, psid3) * 0.5;
+        psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += (psid1 + qcpp[sce-1] + psid2 + psid3) * 0.5;
+
+        /* if(myid==0) {
+            for(int i=0; i<b*t*p; i++)
+                printf("phi %d [%lf] [%lf]\n", i, creal(psiev[i]), cimag(psiev[i]));
+                } */
+        /* if(myid==0) {
+            for(int i=0; i<3*b*p/2; i++) {
+                printf("phi %d [%.10ef]\n", i, cotsh[i]);
+                }
+            } */
 
         box = 2;
         psid1 = mn3(b, &qr[get1Dfrom3D(box-2, sc+1-1, 0, t, p, b)], &qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], &qr[get1Dfrom3D(box+1-1, sc+1-1, 0, t, p, b)], &cotprv[get1Dfrom2D(sc-1, 0, p/2, 3*b)]);
@@ -1224,10 +1225,10 @@ int main(int argc, char* argv[]) {
     mft(local_length, x, 1, P, myid, T, B, w, v, 0, 0, forward_plan);
     fftw_execute(forward_test_plan);
 
-    /* if(myid==0) {
+    if(myid==0) {
         printf("### ALL DONE ###\n");
         display(x, y, local_length);
-    } */
+    }
 
     /* free resources */
     MPI_Barrier(MPI_COMM_WORLD);
