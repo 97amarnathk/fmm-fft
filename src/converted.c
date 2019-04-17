@@ -409,15 +409,6 @@ void mftint(double complex* qr, int lq, int p, int myid, int s, int terms, int n
         }
     }
 
-    /* if(myid==4) {
-        for(int i=0; i<3*p; i++) {
-            printf("nextd %d [%d]\n", i, nextd[i]);
-        }
-        for(int i=0; i<3*p; i++) {
-            printf("prevd %d [%d]\n", i, prevd[i]);
-        }
-    } */
-
     for(int box = 1; box<=t; box++) {
         int ind = 1;
         int lr = 1;
@@ -1097,6 +1088,19 @@ void display(fftw_complex* x, fftw_complex* y, int len) {
     }
 }
 
+double maxError(fftw_complex* x, fftw_complex* y, int len) {
+    double maxErr = cabs(x[0]-y[0])/cabs(y[0]) * 100;
+
+    for(int i=1; i<len; i++) {
+        /* term wise error */
+        double err = cabs(x[i]-y[i])/cabs(y[i]) * 100;
+        if(maxErr < err) {
+            maxErr = err;
+        }
+    }
+    return maxErr;
+}
+
 
 /*
 * N : fft size
@@ -1120,8 +1124,8 @@ int main(int argc, char* argv[]) {
     int N, P, B, T;
     N = atoi(argv[1]);
     P = world_size;
-    B = atoi(argv[3]);
-    T = atoi(argv[4]);
+    B = atoi(argv[2]);
+    T = atoi(argv[3]);
 
     int local_length = N/P;
 
@@ -1140,9 +1144,6 @@ int main(int argc, char* argv[]) {
     v_elements = 8*T*(P-1)*(local_length/B/P + (1 + 2*T)*my_log2(local_length/B) + my_log2(P) + 2) + 12*P*(B + 3) + 3*T;
     w = (double*)malloc(sizeof(double) * w_elements);
     v = (double*)malloc(sizeof(double) * v_elements);
-
-    if(myid==0)
-    printf("w %d v %d", w_elements, v_elements);
 
     /* initialise signal */
     if(myid == 0) {
@@ -1169,27 +1170,18 @@ int main(int argc, char* argv[]) {
         MPI_Recv(x, local_length, MPI_C_DOUBLE_COMPLEX, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     }
 
-    //printf("ID[%d] mfti started\n", myid);
     /* mfti */
     mfti(local_length, P, T, B, w, v, 0, 0);
-    //printf("ID[%d] mfti ended\n", myid);
 
     /* mft */
-    //printf("ID[%d] mft started\n", myid);
     mft(local_length, x, 1, P, myid, T, B, w, v, 0, 0, forward_plan);
-    //printf("ID[%d] mft ended\n", myid);
     
     /* verification data */
     fftw_execute(forward_test_plan);
     
     if(myid==0) {
-        printf("### ALL DONE ###\n");
-        display(x, y, local_length);
+        printf("ERROR : %lf\n", maxError(x, y, local_length));
     }
-
-    MPI_Barrier(MPI_COMM_WORLD);
-    printf("\n[%d] HELLO %d\n", myid, local_length);
-    MPI_Barrier(MPI_COMM_WORLD);
 
     /* free resources */
     MPI_Barrier(MPI_COMM_WORLD);
