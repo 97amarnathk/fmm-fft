@@ -78,13 +78,6 @@ void vx(double a, double* x, double* mat, int terms, double* chnods, double* mm,
         acu[j-1] = ac / tan(0.5 * th);
     }
 
-    /* int myid;
-    MPI_Comm_rank(MPI_COMM_WORLD, &myid);
-    if(myid==0)
-    for(int i=0; i<terms; i++) {
-        printf("acu %d [%lf]\n", i, acu[i]);
-    } */
-
     for(int k=1; k<=terms; k++) {
         mm[k-1] = chnods[k-1] - acu[k-1];
 
@@ -379,15 +372,6 @@ void mfti(int lq, int p, int t, int b, double *wkkeep, double *wktemp, int szkee
         &wkkeep[ia[15]], &wkkeep[ia[16]], &wkkeep[ia[17]], &wkkeep[ia[18]], &wkkeep[ia[19]],
         &wkkeep[ia[20]], wktemp
     );
-
-    /* int myid;
-    MPI_Comm_rank(MPI_COMM_WORLD, &myid);
-
-    if(myid==0) {
-        for(int i=0; i<21; i++) {
-            printf("[%d]\n", ia[i] + 641);
-        }
-    } */
 }
 
 void mftint(double complex* qr, int lq, int p, int myid, int s, int terms, int n, int t, int b, int log2np, int sz1, int szwk, int dir,
@@ -424,6 +408,15 @@ void mftint(double complex* qr, int lq, int p, int myid, int s, int terms, int n
             prevd[get1Dfrom2D(lev-1, j-1, p, 3)] = (myid + 3*p - j*inc)%p;
         }
     }
+
+    /* if(myid==4) {
+        for(int i=0; i<3*p; i++) {
+            printf("nextd %d [%d]\n", i, nextd[i]);
+        }
+        for(int i=0; i<3*p; i++) {
+            printf("prevd %d [%d]\n", i, prevd[i]);
+        }
+    } */
 
     for(int box = 1; box<=t; box++) {
         int ind = 1;
@@ -473,11 +466,6 @@ void mftint(double complex* qr, int lq, int p, int myid, int s, int terms, int n
     int base = t + log2np - 3;
     initmm(qr, p, b, t, initch, &phi[get1Dfrom3D(base, 0, 0, 2*t + log2np-3, p-1, terms)], terms);
 
-    /* if(myid==0) {
-        for(int i=0; i<(terms*(p-1)*(2*t + log2np-3)); i++) {
-            printf("phi %d [%lf] [%lf]\n", i, creal(phi[i]), cimag(phi[i]));
-        }
-    } */
 
     /* Step 2 : Up the tree */
 
@@ -503,7 +491,7 @@ void mftint(double complex* qr, int lq, int p, int myid, int s, int terms, int n
             }
         }
     }
-    
+
     //At higher levels, communication is required
     for(int lev = log2np - 1; lev>=2; lev--) {
         int obase = base;
@@ -517,7 +505,7 @@ void mftint(double complex* qr, int lq, int p, int myid, int s, int terms, int n
             mpp(phr, terms, npm1, &shftfp[get1Dfrom3D(lev-1-1, 0, 0, n-2, terms, terms)], phirs);
 
             for(int sc=1; sc<=npm1; sc++) {
-                for(int term=1; term<=terms; terms++) {
+                for(int term=1; term<=terms; term++) {
                    phi[get1Dfrom3D(base + 1 - 1, sc-1, term-1, 2*t + log2np - 3, p-1, terms)] = phils[get1Dfrom2D(sc-1, term-1, p-1, terms)] + phirs[get1Dfrom2D(sc-1, term-1, p-1, terms)]; 
                 }
             }
@@ -589,7 +577,7 @@ void mftint(double complex* qr, int lq, int p, int myid, int s, int terms, int n
         tag++;
         MPI_Sendrecv(packnn, p/2, MPI_C_DOUBLE_COMPLEX, nextd[get1Dfrom2D(log2np-1, 1, p, 3)], tag, qcpp, p/2, MPI_C_DOUBLE_COMPLEX, prevd[get1Dfrom2D(log2np-1, 1, p, 3)], tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     }
-
+    
     /* Unpack:  packnr -> phin, qrn
           packpr -> phip, qrp, qcpp */
 
@@ -630,9 +618,8 @@ void mftint(double complex* qr, int lq, int p, int myid, int s, int terms, int n
             qcpp[sc-1] = packpr[pk-1];
         }
     }
-
+    
     /* Step 3-4:  Down the tree */
-
     /* -------- Top flip, which always requires communication */
     if(p==2) {
         tag++;
@@ -763,7 +750,6 @@ void mftint(double complex* qr, int lq, int p, int myid, int s, int terms, int n
         }
     }
 
-
     /* Step 5:  Evaluate local expansions. */
     
     for(int sc=p/2; sc<=npm1; sc++) {
@@ -794,9 +780,6 @@ void mftint(double complex* qr, int lq, int p, int myid, int s, int terms, int n
     for(box = 2; box<=t; box++) {
         psit1 = dotp(terms, &psi[get1Dfrom3D(base+box-1, sc-1, 0, 2*t + log2np - 3, p-1, terms)], &evalm[get1Dfrom3D(j-1, sc-1, 0, b, p-1, terms)]);
         psit2 = dotp(terms, &psi[get1Dfrom3D(base+box-2, sc-1, 0, 2*t + log2np - 3, p-1, terms)], &evalmh[get1Dfrom2D(sce-1, 0, p/2, terms)]);
-        if(myid==0) {
-            //printf("PSIT1 [%lf][%lf] PSIT2 [%lf][%lf]\n", creal(psit1), cimag(psit1), creal(psit2), cimag(psit2));
-        }
         psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] = 0.5 * (psit1 + psit2);
     }
 
@@ -864,10 +847,6 @@ void mftint(double complex* qr, int lq, int p, int myid, int s, int terms, int n
         psid2 = dotp(b, &qrp[get1Dfrom2D(sc-1, 0, p-1, b)], &cotsh[get1Dfrom2D(sce-1, 1+b-1, p/2, 3*b)]);
         psid3 = dotp(b, &qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], &cotsh[get1Dfrom2D(sce-1, 1+2*b-1, p/2, 3*b)]);
         psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += (psid1 + qcpp[sce-1] + psid2 + psid3) * 0.5;
-        /* if(myid==0) {
-            for(int i=0; i<b*t*p; i++)
-                printf("phi %d [%lf] [%lf]\n", i,creal(psiev[i]), cimag(qcpp[i]));
-                } */
     }
     else if(t==2) {
         box=1;
@@ -882,22 +861,11 @@ void mftint(double complex* qr, int lq, int p, int myid, int s, int terms, int n
         psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += (psid1 + psid2) * 0.5;
     }
     else {
-        //<LOOK HERE>
         box = 1;
         psid1 = mn3(b, &qrp[get1Dfrom2D(sc-1, 0, p-1, b)], &qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], &qr[get1Dfrom3D(box+1-1, sc+1-1, 0, t, p, b)], &cotprv[get1Dfrom2D(sc-1, 0, p/2, 3*b)]);
         psid2 = dotp(b, &qrp[get1Dfrom2D(sc-1, 0, p-1, b)], &cotsh[get1Dfrom2D(sce-1, 1+b-1, p/2, 3*b)]);
         psid3 = dotp(b,&qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], &cotsh[get1Dfrom2D(sce-1, 1+2*b-1, p/2, 3*b)]);
         psiev[get1Dfrom3D(sc-1, box-1, j-1, p, t, b)] += (psid1 + qcpp[sce-1] + psid2 + psid3) * 0.5;
-
-        /* if(myid==0) {
-            for(int i=0; i<b*t*p; i++)
-                printf("phi %d [%lf] [%lf]\n", i, creal(psiev[i]), cimag(psiev[i]));
-                } */
-        /* if(myid==0) {
-            for(int i=0; i<3*b*p/2; i++) {
-                printf("phi %d [%.10ef]\n", i, cotsh[i]);
-                }
-            } */
 
         box = 2;
         psid1 = mn3(b, &qr[get1Dfrom3D(box-2, sc+1-1, 0, t, p, b)], &qr[get1Dfrom3D(box-1, sc+1-1, 0, t, p, b)], &qr[get1Dfrom3D(box+1-1, sc+1-1, 0, t, p, b)], &cotprv[get1Dfrom2D(sc-1, 0, p/2, 3*b)]);
@@ -1100,15 +1068,6 @@ void mft(int lq, double complex* qr, int dir, int p, int myid, int terms, int b,
         ind += 3 * p;
     }
 
-    /* if(myid==0) {
-        for(int i=0; i<17; i++) {
-            printf("w[%d]\n", ia[i] + 641);
-        }
-        for(int i=17; i<55; i++) {
-            printf("v[%d]\n", ia[i] + 1);
-        }
-    } */
-
     mftint(qr, lq, p, myid, s, terms, n, t, b, log2np, sz1, szwk, dir,
         &w[ia[0]], &w[ia[1]], &w[ia[2]], &w[ia[3]], &w[ia[4]], &w[ia[5]],
         &w[ia[6]], &w[ia[7]], &w[ia[8]], &w[ia[9]], &w[ia[10]], &w[ia[11]], 
@@ -1118,7 +1077,7 @@ void mft(int lq, double complex* qr, int dir, int p, int myid, int terms, int b,
         &v[ia[31]], &v[ia[32]], &v[ia[33]], &v[ia[34]], &v[ia[35]], &v[ia[36]],
         &v[ia[37]], &v[ia[38]], &v[ia[39]], &v[ia[40]], &v[ia[41]], &v[ia[42]],
         &v[ia[43]], &v[ia[44]], &v[ia[45]], &v[ia[46]], &v[ia[47]], &v[ia[48]],
-        &v[ia[49]], &v[ia[50]], &v[ia[51]], &v[ia[52]], &v[ia[53]], &v[ia[54]], &v[ia[55]]
+        &v[ia[49]], &v[ia[50]], &v[ia[51]], &v[ia[52]], &v[ia[53]], (void*) &v[ia[54]], (void*) &v[ia[55]]
     );
 
     fftw_execute(forward_plan);
@@ -1130,8 +1089,8 @@ void display(fftw_complex* x, fftw_complex* y, int len) {
         /* term wise error */
         double err = cabs(x[i]-y[i])/cabs(y[i]) * 100;
 
-        printf("(%.1f, %.1f) ---- (%.1f, %.1f) \t\t %lf\n", 
-            creal(x[i]), cimag(x[i]), 
+        printf("[%d] (%.1f, %.1f) ---- (%.1f, %.1f) \t\t %lf\n", 
+            i, creal(x[i]), cimag(x[i]), 
             creal(y[i]), cimag(y[i]), 
             err
         );
@@ -1152,7 +1111,7 @@ int main(int argc, char* argv[]) {
     MPI_Comm_rank(MPI_COMM_WORLD,&myid);
     MPI_Comm_size(MPI_COMM_WORLD,&world_size);
 
-    if(argc<4) {
+    if(argc<3) {
         printf("ERROR : Provide correct args\n");
         MPI_Finalize();
         return 0;
@@ -1160,7 +1119,7 @@ int main(int argc, char* argv[]) {
 
     int N, P, B, T;
     N = atoi(argv[1]);
-    P = atoi(argv[2]);
+    P = world_size;
     B = atoi(argv[3]);
     T = atoi(argv[4]);
 
@@ -1177,10 +1136,13 @@ int main(int argc, char* argv[]) {
     int w_elements, v_elements;
     double* w;
     double* v;
-    w_elements = 8 * ((int)pow(T, 2)) * my_log2(local_length/B) + (3*B + 2*P)*B*P + 2*P*(P+T);//8*(t**2)*log2(lq/b) + (3*b + 2*p)*b*p + 2*p*(p + t)
-    v_elements = 8*T*(P-1)*(local_length/B/P + (1 + 2*T)*my_log2(local_length/B) + my_log2(P) + 2) + 12*P*(B + 3) + 3*T;//8*t*(p-1)*(lq/b/p + (1+2*t)*log2(lq/b) + log2(p) + 2) + 12*p*(b + 3) + 3*t
+    w_elements = 8 * ((int)pow(T, 2)) * my_log2(local_length/B) + (3*B + 2*P)*B*P + 2*P*(P+T);
+    v_elements = 8*T*(P-1)*(local_length/B/P + (1 + 2*T)*my_log2(local_length/B) + my_log2(P) + 2) + 12*P*(B + 3) + 3*T;
     w = (double*)malloc(sizeof(double) * w_elements);
     v = (double*)malloc(sizeof(double) * v_elements);
+
+    if(myid==0)
+    printf("w %d v %d", w_elements, v_elements);
 
     /* initialise signal */
     if(myid == 0) {
@@ -1207,28 +1169,27 @@ int main(int argc, char* argv[]) {
         MPI_Recv(x, local_length, MPI_C_DOUBLE_COMPLEX, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     }
 
-    /* if(myid==0) {
-        printf("w_elements: %d \t v_elements: %d\n", w_elements, v_elements);
-        printf("### BEFORE ###\n");
-        display(x, y, local_length);
-    } */
-
+    //printf("ID[%d] mfti started\n", myid);
     /* mfti */
     mfti(local_length, P, T, B, w, v, 0, 0);
-
-    /* if(myid==0) {
-        printf("### AFTER MFTI ###\n");
-        display(x, y, local_length);
-    } */
+    //printf("ID[%d] mfti ended\n", myid);
 
     /* mft */
+    //printf("ID[%d] mft started\n", myid);
     mft(local_length, x, 1, P, myid, T, B, w, v, 0, 0, forward_plan);
+    //printf("ID[%d] mft ended\n", myid);
+    
+    /* verification data */
     fftw_execute(forward_test_plan);
-
+    
     if(myid==0) {
         printf("### ALL DONE ###\n");
         display(x, y, local_length);
     }
+
+    MPI_Barrier(MPI_COMM_WORLD);
+    printf("\n[%d] HELLO %d\n", myid, local_length);
+    MPI_Barrier(MPI_COMM_WORLD);
 
     /* free resources */
     MPI_Barrier(MPI_COMM_WORLD);
