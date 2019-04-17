@@ -1110,6 +1110,7 @@ double maxError(fftw_complex* x, fftw_complex* y, int len) {
 */
 int main(int argc, char* argv[]) {
     int myid, world_size;
+    int N, P, B, T;
     
     MPI_Init(&argc,&argv);
     MPI_Comm_rank(MPI_COMM_WORLD,&myid);
@@ -1121,11 +1122,11 @@ int main(int argc, char* argv[]) {
         return 0;
     }
 
-    int N, P, B, T;
     N = atoi(argv[1]);
-    P = world_size;
     B = atoi(argv[2]);
     T = atoi(argv[3]);
+
+    P = world_size;
 
     int local_length = N/P;
 
