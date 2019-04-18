@@ -1002,7 +1002,6 @@ void mft(int lq, double complex* qr, int dir, int p, int myid, int terms, int b,
     ind += terms;
     ia[16] = ind;
     ind += 2*(p-1)*p;
-
     ind = 0;
     for(int j=17; j<=18; j++) {
         ia[j] = ind;
@@ -1101,6 +1100,56 @@ double maxError(fftw_complex* x, fftw_complex* y, int len) {
     return maxErr;
 }
 
+int getvlen(int lq, int terms, int p, int b) {
+    int s = lq/b;
+    int t = s/p;
+    int n = my_log2(s);
+    int log2np = my_log2(p);
+
+    int ind = 0;
+    ind += 2*(2*terms*(p-1)*(2*t + log2np - 3));
+    ind += 2*(2*p);
+    ind += 3*(2*terms*(p-1));
+    ind += 2*(2*(p-1)*(b + n*2*terms));
+    ind += 2*(2*((p-1)*(b + n*2*terms) + p/2));
+    ind += 2*b*p;
+    ind += 2*b*(p-1);
+    ind += 2* (2 * (p/2));
+    ind += 10*(2*terms*(p-1));
+    ind += 2*(2 * terms * (p-1) * 2 * n);
+    ind += 2*lq;
+    ind += 2*(p-1);
+    ind += 2*(2 * (p/2));
+    ind = ind + b;
+    ind += 3*terms;
+    ind += 2 * (3 * p);
+    ind++;
+    return ind;
+}
+
+int getwlen(int lq, int terms, int p, int b){
+    int s = lq/b;
+    int t = s/p;
+    int n = my_log2(s);
+    int log2np = my_log2(p);
+
+    int ind = 0;
+    ind += 8*(terms*terms*(n-2));
+    ind += terms*terms;
+    ind += terms*b;
+    ind += terms*(p - 1)*b;
+    ind += terms*p/2;
+    ind += (3*b*p)/2;
+    ind += 3*b*(b-1)*(p-1);
+    ind += (3*b*p)/2;
+    ind += terms;
+    ind += 2*(p-1)*p;
+    ind += p*(p-1);
+    ind++;
+    
+    return ind;
+}
+
 
 /*
 * N : fft size
@@ -1141,8 +1190,8 @@ int main(int argc, char* argv[]) {
     int w_elements, v_elements;
     double* w;
     double* v;
-    w_elements = 8 * ((int)pow(T, 2)) * my_log2(local_length/B) + (3*B + 2*P)*B*P + 2*P*(P+T);
-    v_elements = 8*T*(P-1)*(local_length/B/P + (1 + 2*T)*my_log2(local_length/B) + my_log2(P) + 2) + 12*P*(B + 3) + 3*T;
+    w_elements = getwlen(N/P, T, P, B);//8 * ((int)pow(T, 2)) * my_log2(local_length/B) + (3*B + 2*P)*B*P + 2*P*(P+T);
+    v_elements = getvlen(N/P, T, P, B);//131406;//8*T*(P-1)*(local_length/B/P + (1 + 2*T)*my_log2(local_length/B) + my_log2(P) + 2) + 12*P*(B + 3) + 3*T;
     w = (double*)malloc(sizeof(double) * w_elements);
     v = (double*)malloc(sizeof(double) * v_elements);
 
