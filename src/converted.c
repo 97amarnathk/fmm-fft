@@ -364,7 +364,7 @@ void mfti(int lq, int p, int t, int b, double *wkkeep, double *wktemp, int szkee
         ia[j] = ind;
         ind+=t;
     }
-
+    printf("ind %d\n", ind);
     mftii(lq, p, s, t, b, n, szkeep, sztemp,
         &wkkeep[ia[0]], &wkkeep[ia[1]], &wkkeep[ia[2]], &wkkeep[ia[3]], &wkkeep[ia[4]],
         &wkkeep[ia[5]], &wkkeep[ia[6]], &wkkeep[ia[7]], &wkkeep[ia[8]], &wkkeep[ia[9]],
@@ -1150,6 +1150,31 @@ int getwlen(int lq, int terms, int p, int b){
     return ind;
 }
 
+int getwlen2(int lq, int terms, int p, int b){
+    int s = lq/b;
+    int t = s/p;
+    int n = my_log2(s);
+    int log2np = my_log2(p);
+
+    int ind = 0;
+    ind += 8*(terms*terms*(n-2));
+    ind += terms*terms;
+    ind += terms*b;
+    ind += terms*(p - 1)*b;
+    ind += terms*p/2;
+    ind += (3*b*p)/2;
+    ind += 3*b*(b-1)*(p-1);
+    ind += (3*b*p)/2;
+    ind += terms;
+    ind += 2*(p-1)*p;
+    ind += p*(p-1);
+    ind+=b;
+    ind+= 3*terms;
+    ind++;
+    
+    return ind;
+}
+
 
 /*
 * N : fft size
@@ -1190,7 +1215,7 @@ int main(int argc, char* argv[]) {
     int w_elements, v_elements;
     double* w;
     double* v;
-    w_elements = getwlen(N/P, T, P, B);//8 * ((int)pow(T, 2)) * my_log2(local_length/B) + (3*B + 2*P)*B*P + 2*P*(P+T);
+    w_elements = getwlen2(N/P, T, P, B);//8 * ((int)pow(T, 2)) * my_log2(local_length/B) + (3*B + 2*P)*B*P + 2*P*(P+T);
     v_elements = getvlen(N/P, T, P, B);//131406;//8*T*(P-1)*(local_length/B/P + (1 + 2*T)*my_log2(local_length/B) + my_log2(P) + 2) + 12*P*(B + 3) + 3*T;
     w = (double*)malloc(sizeof(double) * w_elements);
     v = (double*)malloc(sizeof(double) * v_elements);
@@ -1220,17 +1245,21 @@ int main(int argc, char* argv[]) {
         MPI_Recv(x, local_length, MPI_C_DOUBLE_COMPLEX, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     }
 
+    printf("w_elements %d\n", w_elements);
+
     /* mfti */
     mfti(local_length, P, T, B, w, v, 0, 0);
 
     /* mft */
+    double start = MPI_Wtime();
     mft(local_length, x, 1, P, myid, T, B, w, v, 0, 0, forward_plan);
-    
+    double end = MPI_Wtime() - start;
+
     /* verification data */
     fftw_execute(forward_test_plan);
     
     if(myid==0) {
-        printf("ERROR : %lf\n", maxError(x, y, local_length));
+        printf("ERROR : [%lf]         TIME : [%lf]\n", maxError(x, y, local_length), end);
     }
 
     /* free resources */
