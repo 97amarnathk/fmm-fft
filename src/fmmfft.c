@@ -364,7 +364,6 @@ void mfti(int lq, int p, int t, int b, double *wkkeep, double *wktemp, int szkee
         ia[j] = ind;
         ind+=t;
     }
-    printf("ind %d\n", ind);
     mftii(lq, p, s, t, b, n, szkeep, sztemp,
         &wkkeep[ia[0]], &wkkeep[ia[1]], &wkkeep[ia[2]], &wkkeep[ia[3]], &wkkeep[ia[4]],
         &wkkeep[ia[5]], &wkkeep[ia[6]], &wkkeep[ia[7]], &wkkeep[ia[8]], &wkkeep[ia[9]],
