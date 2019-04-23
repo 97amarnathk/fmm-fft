@@ -1215,8 +1215,8 @@ int main(int argc, char* argv[]) {
     int w_elements, v_elements;
     double* w;
     double* v;
-    w_elements = getwlen2(N/P, T, P, B);//8 * ((int)pow(T, 2)) * my_log2(local_length/B) + (3*B + 2*P)*B*P + 2*P*(P+T);
-    v_elements = getvlen(N/P, T, P, B);//131406;//8*T*(P-1)*(local_length/B/P + (1 + 2*T)*my_log2(local_length/B) + my_log2(P) + 2) + 12*P*(B + 3) + 3*T;
+    w_elements = getwlen2(N/P, T, P, B);
+    v_elements = getvlen(N/P, T, P, B);
     w = (double*)malloc(sizeof(double) * w_elements);
     v = (double*)malloc(sizeof(double) * v_elements);
 
@@ -1244,8 +1244,6 @@ int main(int argc, char* argv[]) {
         /* receive */
         MPI_Recv(x, local_length, MPI_C_DOUBLE_COMPLEX, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     }
-
-    printf("w_elements %d\n", w_elements);
 
     /* mfti */
     mfti(local_length, P, T, B, w, v, 0, 0);
