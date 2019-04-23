@@ -1256,7 +1256,7 @@ int main(int argc, char* argv[]) {
     fftw_execute(forward_test_plan);
     
     if(myid==0) {
-        printf("ERROR : [%lf]         TIME : [%lf]\n", maxError(x, y, local_length), end);
+        printf("%d, %d, %d, %d, %lf, %lf\n", N, P, B, T, end, maxError(x, y, local_length));
     }
 
     /* free resources */
