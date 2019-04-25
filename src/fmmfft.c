@@ -1204,20 +1204,17 @@ int main(int argc, char* argv[]) {
     int local_length = N/P;
 
     fftw_complex *x = 0;
-    fftw_complex *y = 0;
     x  = fftw_malloc(sizeof(fftw_complex)*local_length);
-    y  = fftw_malloc(sizeof(fftw_complex)*N);
 
     fftw_plan forward_plan = fftw_plan_dft(1, &local_length, x, x, FFTW_FORWARD, FFTW_ESTIMATE);
-    fftw_plan forward_test_plan = fftw_plan_dft(1, &N, y, y, FFTW_FORWARD, FFTW_ESTIMATE);
 
     int w_elements, v_elements;
     double* w;
     double* v;
     w_elements = getwlen2(N/P, T, P, B);
     v_elements = getvlen(N/P, T, P, B);
-    w = (double*)malloc(sizeof(double) * w_elements);
-    v = (double*)malloc(sizeof(double) * v_elements);
+    w = (double*)fftw_malloc(sizeof(double) * w_elements);
+    v = (double*)fftw_malloc(sizeof(double) * v_elements);
 
     /* initialise signal */
     if(myid == 0) {
@@ -1234,10 +1231,6 @@ int main(int argc, char* argv[]) {
         for(int i=0; i<local_length; i++) {
             x[i] = i+1;
         }
-        /* reference array */
-        for(int i=0; i<N; i++) {
-            y[i] = (fftw_complex)(i+1);
-        }
     }
     else {
         /* receive */
@@ -1247,25 +1240,34 @@ int main(int argc, char* argv[]) {
     /* mfti */
     mfti(local_length, P, T, B, w, v, 0, 0);
 
-    /* mft */
-    double start = MPI_Wtime();
-    mft(local_length, x, 1, P, myid, T, B, w, v, 0, 0, forward_plan);
-    double end = MPI_Wtime() - start;
+    int RUNS = 6;
+    double global_time = 0;
 
-    /* verification data */
-    fftw_execute(forward_test_plan);
+    for(int runid = 0; runid<RUNS; runid++) {
+        MPI_Barrier(MPI_COMM_WORLD);
+        
+        /* mft */
+        double start = MPI_Wtime();
+        mft(local_length, x, 1, P, myid, T, B, w, v, 0, 0, forward_plan);
+        double end = MPI_Wtime() - start;
+        
+        if(runid>0)
+            global_time+=end;
+        
+        MPI_Barrier(MPI_COMM_WORLD); 
+    }
     
+    global_time = global_time/(RUNS-1);
+
     if(myid==0) {
-        printf("%d, %d, %d, %d, %lf, %lf\n", N, P, B, T, end, maxError(x, y, local_length));
+        printf("%d, %d, %d, %d, %lf, %lf\n", N, P, B, T, global_time, 0);
     }
 
     /* free resources */
     MPI_Barrier(MPI_COMM_WORLD);
     fftw_destroy_plan(forward_plan);
-    fftw_destroy_plan(forward_test_plan);
     fftw_free(x);
-    fftw_free(y);
-    free(w);
-    free(v);
+    fftw_free(w);
+    fftw_free(v);
     MPI_Finalize();
 }
