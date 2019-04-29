@@ -8,6 +8,8 @@
 #include <math.h>
 #include <complex.h>
 #include <fftw3-mpi.h>
+#include <omp.h>
+
 #include <mpi.h>
 
 int main(int argc, char* argv[]) {
@@ -20,7 +22,7 @@ int main(int argc, char* argv[]) {
     ptrdiff_t size;
     ptrdiff_t local_ni, local_i_start, local_no, local_o_start;
 
-    int RUNS = 1;
+    int RUNS = 5;
     double start, end;
     
     MPI_Init(&argc, &argv);
@@ -49,14 +51,16 @@ int main(int argc, char* argv[]) {
         
         forward_plan = fftw_mpi_plan_dft_1d(N, x, x, MPI_COMM_WORLD, FFTW_FORWARD, FFTW_ESTIMATE);
 
-        start = MPI_Wtime();
+        // start = MPI_Wtime();
+        start = omp_get_wtime();
         //--------------------------------------ALG STARTS HERE-----------------------------------
         fftw_execute(forward_plan);
         //--------------------------------------ALG ENDS  HERE-----------------------------------
-        end = MPI_Wtime();
+        end = omp_get_wtime() - start;
+        // end = MPI_Wtime() - start;
 
         if(0 == comm_rank) {
-            printf("%td %d %d %lf\n", N, comm_size, run, end - start);
+            printf("%td %d %d %lf\n", N, comm_size, run, end);
         }
 
         fftw_destroy_plan(forward_plan);

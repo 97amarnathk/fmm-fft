@@ -3,6 +3,7 @@
 #include <mpi.h>
 #include <math.h>
 #include <complex.h>
+#include <omp.h>
 
 #include <fftw3.h>
 
@@ -1247,10 +1248,17 @@ int main(int argc, char* argv[]) {
         MPI_Barrier(MPI_COMM_WORLD);
         
         /* mft */
-        double start = MPI_Wtime();
+        // double start = MPI_Wtime();
+        double start = omp_get_wtime();
         mft(local_length, x, 1, P, myid, T, B, w, v, 0, 0, forward_plan);
-        double end = MPI_Wtime() - start;
-        
+        MPI_Barrier(MPI_COMM_WORLD);
+        // double end = MPI_Wtime() - start;
+        double end = omp_get_wtime() - start; 
+
+        if(myid==0) {
+            printf("%d, %d, %d, %d, %lf, %lf\n", N, P, B, T, end, 0);
+        }
+
         if(runid>0)
             global_time+=end;
         
@@ -1259,9 +1267,9 @@ int main(int argc, char* argv[]) {
     
     global_time = global_time/(RUNS-1);
 
-    if(myid==0) {
-        printf("%d, %d, %d, %d, %lf, %lf\n", N, P, B, T, global_time, 0);
-    }
+    // if(myid==0) {
+    //     printf("%d, %d, %d, %d, %lf, %lf\n", N, P, B, T, global_time, 0);
+    // }
 
     /* free resources */
     MPI_Barrier(MPI_COMM_WORLD);

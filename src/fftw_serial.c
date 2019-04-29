@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <float.h>
 #include <mpi.h>
+#include <omp.h>
 
 #include "fftw3.h"
 
@@ -51,15 +52,15 @@ int main(int argc, char *argv[]) {
         int runId = i;
         forward_plan = fftw_plan_dft(1, &N, x, x, FFTW_FORWARD, FFTW_ESTIMATE);
 
-        double start_time = MPI_Wtime();
-
+        // double start_time = MPI_Wtime();
+        double start_time = omp_get_wtime();
         /*--------------ALG STARTS HERE --------------------------*/
         fftw_execute(forward_plan);
         /*--------------ALG ENDS HERE --------------------------*/
+        double end_time = omp_get_wtime() - start_time;
+        // double end_time = MPI_Wtime();
 
-        double end_time = MPI_Wtime();
-
-        printf("%d, %d, %lf\n", N, runId, end_time - start_time);
+        printf("%d, %d, %lf\n", N, runId, end_time);
 
         // fftw_cleanup_threads();
         fftw_destroy_plan(forward_plan);
