@@ -1,3 +1,10 @@
+/*******************************************************************************
+*
+*   Content : FMM-FFT MPI C 1D complex, double precision.
+*   Authors :
+*       Amarnath Karthi  (201501005@daiict.ac.in)
+*       Chahak Mehta     (201501422@daiict.ac.in)
+*******************************************************************************/
 #include <stdio.h>
 #include <stdlib.h>
 #include <mpi.h>

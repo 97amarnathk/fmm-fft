@@ -1,7 +1,9 @@
 /*******************************************************************************
 *
 *   Content : FFTW MPI C 1D complex, double precision
-*
+*   Authors :
+*       Amarnath Karthi  (201501005@daiict.ac.in)
+*       Chahak Mehta     (201501422@daiict.ac.in)
 *******************************************************************************/
 
 #include <stdlib.h>
@@ -51,13 +53,11 @@ int main(int argc, char* argv[]) {
         
         forward_plan = fftw_mpi_plan_dft_1d(N, x, x, MPI_COMM_WORLD, FFTW_FORWARD, FFTW_ESTIMATE);
 
-        // start = MPI_Wtime();
         start = omp_get_wtime();
         //--------------------------------------ALG STARTS HERE-----------------------------------
         fftw_execute(forward_plan);
         //--------------------------------------ALG ENDS  HERE-----------------------------------
         end = omp_get_wtime() - start;
-        // end = MPI_Wtime() - start;
 
         if(0 == comm_rank) {
             printf("%td %d %d %lf\n", N, comm_size, run, end);
@@ -71,8 +71,3 @@ int main(int argc, char* argv[]) {
 
     return 0;
 }
-
-/*
-mpicc fftw_mpi.c -lm -lfftw3 -L/home/201501005/fftw3/fftw3/lib/ -I/home/201501005/fftw3/fftw3/include -lfftw3_mpi
-gcc src/fftw_serial.c -lm -lfftw3 -L/home/201501005/fftw3/fftw3/lib/ -I/home/201501005/fftw3/fftw3/include -o fftw3_serial.o
-*/
