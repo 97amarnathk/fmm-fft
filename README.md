@@ -1,73 +1,39 @@
 # fmm-fft
-Parallel FMM Accellerated FFT on CPUs
+
+Parallel FMM Accellerated FFT on CPUs using OpenMPI.
+Based on the works of [Edelman et. al.](http://www-math.mit.edu/%7Eedelman/homepage/papers/edelman97future.pdf).
+
+### Authors
+* [Amarnath Karthi](https://github.com/97amarnathk)
+* [Chahak Mehta](https://github.com/chahak13)
+
+## Introduction
+
+Traditional distributed Fast Fourier Transforms (FFTs) require 3 _all-to-all_ communications which cause severe communication bottlenecks.
+FMM-FFT uses the Fast Multipole Method to approximate the solutions of the FFT, thereby reducing the communication required.
+
+## Dependencies
+
+* FFTW3
+* OpenMPI
+* OpenMP
+
+## Codes
+
+* [src/fftw_mpi.c](https://github.com/97amarnathk/fmm-fft/blob/master/src/fftw_mpi.c)  : Distributed FFT
+* [src/fmmfft.c](https://github.com/97amarnathk/fmm-fft/blob/master/src/fmmfft.c)    : Distributed FMM Accellerated FFT
+* [src/fmmfft_error.c](https://github.com/97amarnathk/fmm-fft/blob/master/src/fmmfft_error.c)  : Comparison of FFT and FMM-FFT outputs
+
+## Installation
+1. Edit `makefile` and change the `-L` and `-I` in the `local` target.
+2. `make local`
+3. Run the out file.
+
+## References
+[1] [The Future Fast Fourier Transform?](http://www-math.mit.edu/%7Eedelman/homepage/papers/edelman97future.pdf), by Edelman et. al. , SIAM Journal on Scientific Computing. SIAM J Scientific Computing 20 1094-1114 (1998)
+
+[2] [Re-Introduction of Communication-AvoidingFMM-Accelerated FFTs with GPU Acceleration](http://www.harperlangston.com/papers/hpec13.pdf), by Langston et. al. , IEEE Conference on High Performance Extreme Computing (HPEC '13)
 
 
-## Functions
-
-### Verified
-
-### Written
-
-* mfti
-* mftii
-* initg
-* flip
-* shftf
-* shftl
-* vx
-* wx
-* evlmf
-* mft
-
-### TODO
-
-* mftint
-
-
-## Verify the following
-
-* All equations. For example `a / b / c` is correctly written.
-
-### Arrays
-* All computations are done in 1 base indexing. All arrays are stored in 0 based indexing. For example:
-
-```C
-// All arrays should be used like this
-for(int j=1; j<=terms; j++) {
-  double th = f(j);
-  arr[j-1] = temp;
-}
-```
-
-* Fortran is column major. ie `A(2, 1, 10)` is placed next to `A(1, 1, 10)`. In C, `A(1, 2, 10)` is the neighbor of `A(1, 1, 10)`. Therefore if a fortran array ARR has dimensions I x J x K ,  it will be stored in C as `A[K][J][I]` array. 
-
-As an example consider the following fortran to C conversion. Fortran code is:
-
-```fortran
-double precision ARR(I, J, K)
-
-do i=1, I
-  do j=1, J
-    do k=1, K
-      ARR(i, j, k) = f(i, j, k)
-     end do
-  end do
-end do
-```
-
-It should be converted to the following C code:
-
-```C
-// stored as transpose, to emulate column major indexing
-double ARR[K][J][I];
-
-// loops in 1 base indexing
-for(int i=1; i<=I; i++) {
-  for(int j=1; j<=J; j++) {
-    for(int k=1; k<=K; k++) {
-      // stored in 0 based indexing (subtrct 1), store as transpose.
-      ARR[k-1][j-1][i-1] = f(i, j, k); 
-    }
-  }
-}
-```
+### TODO:
+* Add headers for FMM-FFT functions.
