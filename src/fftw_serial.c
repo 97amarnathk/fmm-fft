@@ -46,7 +46,7 @@ int main(int argc, char *argv[]) {
     fftw_complex *x = 0;
     int status = 0;
 
-    x  = fftw_malloc(sizeof(fftw_complex)*N);
+    x = fftw_malloc(sizeof(fftw_complex)*N);
 
     for(i=0; i<RUNS; i++) {
         int runId = i;
